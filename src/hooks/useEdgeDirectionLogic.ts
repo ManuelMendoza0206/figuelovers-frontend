@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { AppNode, AppEdge } from '../store/useGraphStore';
+import type { AppNode, AppEdge } from '../types/graph';
 
 interface UseEdgeDirectionLogicResult {
   existingDirectedEdge: AppEdge | null;

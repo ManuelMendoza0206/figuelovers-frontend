@@ -41,7 +41,3 @@ export const success = (message: string, duration?: number) =>
   useToast.getState().show('success', message, duration);
 export const error = (message: string, duration?: number) =>
   useToast.getState().show('error', message, duration);
-export const warning = (message: string, duration?: number) =>
-  useToast.getState().show('warning', message, duration);
-export const info = (message: string, duration?: number) =>
-  useToast.getState().show('info', message, duration);

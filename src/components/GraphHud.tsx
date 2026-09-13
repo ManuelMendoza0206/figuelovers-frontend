@@ -1,7 +1,7 @@
 import React from 'react';
 import { Maximize2 } from 'lucide-react';
 import { useGraphStore } from '../store/useGraphStore';
-import type { GraphTool } from './GraphToolbar';
+import type { GraphTool } from '../types/graph';
 
 interface GraphHudProps {
   activeTool: GraphTool;
@@ -13,25 +13,23 @@ export const GraphHud: React.FC<GraphHudProps> = ({ activeTool, onFitView }) => 
 
   return (
     <>
-      <div className="absolute left-4 top-4 z-20">
-        <span className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-xl border border-border bg-surface/95 px-3.5 py-2 shadow-md backdrop-blur-sm">
-          <div className="flex items-center gap-2 text-[11px] text-slate-500">
-            <span className="h-2 w-2 rounded-full bg-brand" />
+      <span className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-xl border border-border bg-surface/95 px-3.5 py-2 shadow-md backdrop-blur-sm">
+        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+          <span className="h-2 w-2 rounded-full bg-brand" />
 
-            {activeTool === 'interact' && (
-              <span>
-                <strong className="font-bold text-ink">Interactuar</strong> · mueve, selecciona y edita
-              </span>
-            )}
+          {activeTool === 'interact' && (
+            <span>
+              <strong className="font-bold text-ink">Interactuar</strong> · mueve, selecciona y edita
+            </span>
+          )}
 
-            {activeTool === 'connect' && (
-              <span>
-                <strong className="font-bold text-ink">Conectar</strong> · arrastra de un nodo a otro
-              </span>
-            )}
-          </div>
-        </span>
-      </div>
+          {activeTool === 'connect' && (
+            <span>
+              <strong className="font-bold text-ink">Conectar</strong> · arrastra de un nodo a otro
+            </span>
+          )}
+        </div>
+      </span>
 
       <button
         type="button"

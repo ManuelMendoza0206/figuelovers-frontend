@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Table } from 'lucide-react';
 import { Modal } from '../ui';
 import type { AdjacencyMatrixResponse } from '../types/graph';
+import { truncateId } from '../lib/truncate';
 
 interface MatrixModalProps {
   isOpen: boolean;
@@ -9,9 +10,6 @@ interface MatrixModalProps {
   data: AdjacencyMatrixResponse | null;
   folioByNodeId: Record<string, number>;
 }
-
-const truncateId = (id: string): string =>
-  id.length > 17 ? id.slice(0, 17) : id;
 
 export const MatrixModal: React.FC<MatrixModalProps> = ({
   isOpen,

@@ -8,6 +8,7 @@ import {
   SELF_LOOP_LATERAL_SPREAD,
   SELF_LOOP_LABEL_OFFSET,
 } from '../../lib/graphGeometry';
+import { BRAND_COLOR, INK_COLOR } from '../../lib/graphEdge';
 
 interface WeightedEdgeData {
   isCurved?: boolean;
@@ -126,8 +127,8 @@ export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              color: selected ? '#05A8AA' : '#242F40',
-              borderColor: selected ? '#05A8AA' : '#cbd5e1',
+              color: selected ? BRAND_COLOR : INK_COLOR,
+              borderColor: selected ? BRAND_COLOR : '#cbd5e1',
               zIndex: selected ? 50 : 30,
             }}
           >

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Save, Trash2 } from 'lucide-react';
 import { Button, SectionHeader, TextField } from '../ui';
-import type { AppNode } from '../store/useGraphStore';
+import type { AppNode } from '../types/graph';
 
 const NodeIcon: React.FC = () => (
   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

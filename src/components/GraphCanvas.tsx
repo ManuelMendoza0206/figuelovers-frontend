@@ -30,6 +30,7 @@ import GraphToolbar from './GraphToolbar';
 import type { GraphTool } from '../types/graph';
 import { WeightedStraightEdge } from './edges/WeightedStraightEdge';
 import { GraphHud } from './GraphHud';
+import { BRAND_COLOR, EDGE_STROKE_WIDTH, createEdgeStyle } from '../lib/graphEdge';
 import {
   getDynamicEdgeHandles,
   getSelfLoopHandles,
@@ -104,11 +105,9 @@ const CanvasContent: React.FC = () => {
             loopCenterY: selfLoopInfo.centerY,
           },
           zIndex: edge.selected ? 40 : 20,
-          style: {
-            ...edge.style,
-            stroke: '#05A8AA',
+          style: createEdgeStyle({
             strokeWidth: edge.selected ? 3 : 2.5,
-          },
+          }),
         };
       }),
     [edges, nodeMap]
@@ -215,9 +214,9 @@ const CanvasContent: React.FC = () => {
         defaultEdgeOptions={{
           type: 'weightedStraightEdge',
           zIndex: 20,
-          style: { strokeWidth: 2.5, stroke: '#05A8AA' },
+          style: createEdgeStyle({ zIndex: undefined }),
         }}
-        connectionLineStyle={{ stroke: '#05A8AA', strokeWidth: 2.5 }}
+        connectionLineStyle={{ stroke: BRAND_COLOR, strokeWidth: EDGE_STROKE_WIDTH }}
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#cbd5e1" />
@@ -228,7 +227,7 @@ const CanvasContent: React.FC = () => {
         />
         <MiniMap
           position="top-right"
-          nodeColor="#05A8AA"
+          nodeColor={BRAND_COLOR}
           maskColor="rgba(248, 250, 252, 0.78)"
           nodeStrokeWidth={2}
           pannable

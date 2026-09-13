@@ -4,7 +4,7 @@ import { Handle, Position } from 'reactflow';
 
 import type { NodeProps } from 'reactflow';
 
-import type { AppNodeData } from '../store/useGraphStore';
+import type { AppNodeData } from '../types/graph';
 
 export const NODE_SIZE = 76;
 
@@ -105,15 +105,15 @@ const CircularNode: React.FC<
         'select-none',
 
         selected
-          ? 'border-[#05A8AA] shadow-[0_0_0_5px_rgba(5,168,170,0.14),0_8px_22px_rgba(36,47,64,0.15)]'
-          : 'border-[#242F40] shadow-[0_5px_16px_rgba(36,47,64,0.12)]',
+          ? 'border-brand shadow-[0_0_0_5px_rgba(5,168,170,0.14),0_8px_22px_rgba(36,47,64,0.15)]'
+          : 'border-ink shadow-[0_5px_16px_rgba(36,47,64,0.12)]',
       ].join(' ')}
       aria-label={`Nodo ${data.label}`}
       data-node-id={id}
     >
 
       <span
-        className="pointer-events-none max-w-[60px] truncate px-1 text-center text-xs font-extrabold leading-tight text-[#242F40]"
+        className="pointer-events-none max-w-[60px] truncate px-1 text-center text-xs font-extrabold leading-tight text-ink"
         title={data.label}
       >
         {data.label}

@@ -1,5 +1,4 @@
-import { MarkerType } from 'reactflow';
-
+import { createEdgeMarker, createEdgeStyle } from '../lib/graphEdge';
 
 import type {
   GraphPayloadSchema,
@@ -9,7 +8,7 @@ import type {
 } from '../types/graph';
 
 
-import type { AppNode, AppEdge, AppNodeData } from '../store/useGraphStore';
+import type { AppNode, AppEdge, AppNodeData } from '../types/graph';
 
 
 // ==========================================
@@ -351,13 +350,9 @@ export const graphPayloadToFlow = (
         is_directed: isDirected,
       },
       markerEnd: isDirected
-        ? { type: MarkerType.ArrowClosed }
+        ? createEdgeMarker()
         : undefined,
-      style: {
-        stroke: '#05A8AA',
-        strokeWidth: 2.5,
-        zIndex: 10,
-      },
+      style: createEdgeStyle(),
     };
   });
 

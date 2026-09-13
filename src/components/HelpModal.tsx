@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { HelpCircle, Move, MousePointer, Plus, GitBranch, Trash2, ChevronDown } from 'lucide-react';
+import { HelpCircle, MousePointerClick, Plus, GitBranch, ArrowRightLeft, Trash2, ChevronDown } from 'lucide-react';
 import { IconButton } from '../ui';
 
 interface HelpItem {
@@ -11,14 +11,9 @@ interface HelpItem {
 
 const HELP_ITEMS: HelpItem[] = [
   {
-    icon: <Move className="h-4 w-4" />,
-    title: 'Mover',
-    description: 'Desplaza los nodos por el lienzo y navega por el canvas.',
-  },
-  {
-    icon: <MousePointer className="h-4 w-4" />,
-    title: 'Seleccionar',
-    description: 'Selecciona un nodo o una arista para editar sus propiedades en el panel lateral.',
+    icon: <MousePointerClick className="h-4 w-4" />,
+    title: 'Interactuar',
+    description: 'Selecciona nodos y aristas, arrástralos para moverlos y navega arrastrando el lienzo.',
   },
   {
     icon: <GitBranch className="h-4 w-4" />,
@@ -31,7 +26,7 @@ const HELP_ITEMS: HelpItem[] = [
     description: 'Usa "Añadir nodo" o haz doble clic sobre una zona vacía del lienzo.',
   },
   {
-    icon: <GitBranch className="h-4 w-4" />,
+    icon: <ArrowRightLeft className="h-4 w-4" />,
     title: 'Editar aristas',
     description: 'Selecciona una arista para cambiar su peso, quitar su dirección o invertirla.',
   },

@@ -84,13 +84,23 @@ export const Navbar: React.FC = () => {
     {} as Record<string, number>
   );
 
-  const handleShowMatrix = async () => {
+  const openValidationView = async (
+    view: 'matrix' | 'list'
+  ) => {
     if (nodes.length === 0) {
-      error('Añade al menos un nodo al lienzo antes de ver la matriz.');
+      error('Añade al menos un nodo al lienzo antes de ver la vista.');
       return;
     }
 
-    setIsFetchingMatrix(true);
+    const setFetching =
+      view === 'matrix' ? setIsFetchingMatrix : setIsFetchingList;
+
+    const openModal =
+      view === 'matrix'
+        ? () => setIsMatrixModalOpen(true)
+        : () => setIsAdjListModalOpen(true);
+
+    setFetching(true);
 
     try {
       const response = await GraphServiceAPI.validateGraph(
@@ -103,40 +113,17 @@ export const Navbar: React.FC = () => {
       }
 
       setValidationData(response.data);
-      setIsMatrixModalOpen(true);
+      openModal();
     } catch (err: unknown) {
       error(extractErrorMessage(err, 'Error al conectar con FastAPI.'));
     } finally {
-      setIsFetchingMatrix(false);
+      setFetching(false);
     }
   };
 
-  const handleShowList = async () => {
-    if (nodes.length === 0) {
-      error('Añade al menos un nodo al lienzo antes de ver la lista.');
-      return;
-    }
+  const handleShowMatrix = () => openValidationView('matrix');
 
-    setIsFetchingList(true);
-
-    try {
-      const response = await GraphServiceAPI.validateGraph(
-        buildGraphPayload(nodes, edges)
-      );
-
-      if (!response.data) {
-        error('El servidor no devolvió datos del grafo.');
-        return;
-      }
-
-      setValidationData(response.data);
-      setIsAdjListModalOpen(true);
-    } catch (err: unknown) {
-      error(extractErrorMessage(err, 'Error al conectar con FastAPI.'));
-    } finally {
-      setIsFetchingList(false);
-    }
-  };
+  const handleShowList = () => openValidationView('list');
 
   const handleExportJson = () => {
     if (nodes.length === 0) {
@@ -250,6 +237,7 @@ export const Navbar: React.FC = () => {
                 onClick={handleShowMatrix}
                 disabled={isFetchingMatrix}
                 title="Ver matriz de adyacencia"
+                aria-label="Ver matriz de adyacencia"
                 className="flex items-center gap-2 rounded-md bg-teal-100/50 px-3 py-1.5 text-teal-700 transition-colors hover:bg-teal-200/50 border border-teal-200"
               >
                 {isFetchingMatrix ? <Spinner /> : <Database className="h-4 w-4" />}
@@ -260,6 +248,7 @@ export const Navbar: React.FC = () => {
                 onClick={handleShowList}
                 disabled={isFetchingList}
                 title="Ver lista de adyacencia"
+                aria-label="Ver lista de adyacencia"
                 className="flex items-center gap-2 rounded-md bg-teal-100/50 px-3 py-1.5 text-teal-700 transition-colors hover:bg-teal-200/50 border border-teal-200"
               >
                 {isFetchingList ? <Spinner /> : <List className="h-4 w-4" />}
@@ -275,6 +264,7 @@ export const Navbar: React.FC = () => {
               <IconButton 
                 onClick={handleExportJson} 
                 title="Guardar grafo en JSON"
+                aria-label="Guardar grafo en JSON"
                 className="flex items-center gap-2 rounded-md bg-slate-100 px-3 py-1.5 text-slate-700 transition-colors hover:bg-slate-200 border border-slate-200"
               >
                 <Download className="h-4 w-4 text-teal-700" />
@@ -285,6 +275,7 @@ export const Navbar: React.FC = () => {
                 onClick={handleImportClick} 
                 disabled={isImporting} 
                 title="Cargar grafo desde JSON"
+                aria-label="Cargar grafo desde JSON"
                 className="flex items-center gap-2 rounded-md bg-slate-100 px-3 py-1.5 text-slate-700 transition-colors hover:bg-slate-200 border border-slate-200"
               >
                 {isImporting ? <Spinner /> : <Upload className="h-4 w-4 text-teal-700" />}

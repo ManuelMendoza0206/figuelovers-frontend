@@ -1,4 +1,4 @@
-import type { AppNode, AppEdge } from '../store/useGraphStore';
+import type { AppNode, AppEdge } from '../types/graph';
 import { getNearestConnectionIndex, getHandleId, NODE_RADIUS } from '../components/CircularNode';
 
 export const NODE_CENTER_OFFSET = NODE_RADIUS;

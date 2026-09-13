@@ -1,8 +1,6 @@
 import React from 'react';
 import type { GraphTool } from '../types/graph';
 
-export type { GraphTool };
-
 interface GraphToolbarProps {
   activeTool: GraphTool;
   onToolChange: (tool: GraphTool) => void;

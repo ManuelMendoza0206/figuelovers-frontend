@@ -3,7 +3,6 @@ import {
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
-  MarkerType,
 } from 'reactflow';
 
 import type {
@@ -13,9 +12,9 @@ import type {
   OnConnect,
 } from 'reactflow';
 
-import type { GraphValidationData, AppNodeData, AppEdgeData, AppNode, AppEdge } from '../types/graph';
+import { createEdgeMarker, createEdgeStyle } from '../lib/graphEdge';
 
-export type { AppNodeData, AppEdgeData, AppNode, AppEdge };
+import type { GraphValidationData, AppNode, AppEdge } from '../types/graph';
 
 interface GraphState {
   nodes: AppNode[];
@@ -237,15 +236,9 @@ export const useGraphStore = create<GraphState>((set) => ({
           is_directed: true,
         },
 
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-        },
+        markerEnd: createEdgeMarker(),
 
-        style: {
-          stroke: '#05A8AA',
-          strokeWidth: 2.5,
-          zIndex: 10,
-        },
+        style: createEdgeStyle(),
       };
 
       const nextEdges = addEdge(
@@ -414,16 +407,9 @@ export const useGraphStore = create<GraphState>((set) => ({
           is_directed: true,
         },
 
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-        },
+        markerEnd: createEdgeMarker(),
 
-        style: {
-          ...edge.style,
-          stroke: '#05A8AA',
-          strokeWidth: 2.5,
-          zIndex: 10,
-        },
+        style: createEdgeStyle(),
       };
 
       const updatedEdges = state.edges.map(
@@ -501,17 +487,10 @@ export const useGraphStore = create<GraphState>((set) => ({
             },
 
             markerEnd: isDirected
-              ? {
-                  type: MarkerType.ArrowClosed,
-                }
+              ? createEdgeMarker()
               : undefined,
 
-            style: {
-              ...edge.style,
-              stroke: '#05A8AA',
-              strokeWidth: 2.5,
-              zIndex: 10,
-            },
+            style: createEdgeStyle(),
           };
 
           return updatedEdge;

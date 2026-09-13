@@ -1,6 +1,7 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { Settings } from 'lucide-react';
 import { useGraphStore } from '../store/useGraphStore';
+import { useEdgeDirectionLogic } from '../hooks/useEdgeDirectionLogic';
 import { NodePropsForm } from './NodePropsForm';
 import { EdgePropsForm } from './EdgePropsForm';
 import { EmptyState } from './EmptyState';
@@ -18,25 +19,10 @@ export const Sidebar: React.FC = () => {
     reverseEdge,
   } = useGraphStore();
 
-  const existingDirectedEdge = useMemo(() => {
-    if (!selectedEdge) return null;
-    return (
-      edges.find(
-        (edge) =>
-          edge.id !== selectedEdge.id &&
-          edge.data?.is_directed === true &&
-          ((edge.source === selectedEdge.source && edge.target === selectedEdge.target) ||
-            (edge.source === selectedEdge.target && edge.target === selectedEdge.source))
-      ) ?? null
-    );
-  }, [edges, selectedEdge]);
-
-  const shouldReverseToRespectExisting = Boolean(
-    selectedEdge &&
-      existingDirectedEdge &&
-      (selectedEdge.source !== existingDirectedEdge.target ||
-        selectedEdge.target !== existingDirectedEdge.source)
-  );
+  const {
+    existingDirectedEdge,
+    shouldReverseToRespectExisting,
+  } = useEdgeDirectionLogic(selectedEdge, nodes, edges);
 
   const handleSaveNode = useCallback(
     (label: string) => {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Save, Trash2, ArrowRightLeft } from 'lucide-react';
 import { Button, SectionHeader, TextField } from '../ui';
-import type { AppNode, AppEdge } from '../store/useGraphStore';
+import type { AppNode, AppEdge } from '../types/graph';
 import { useEdgeDirectionLogic } from '../hooks/useEdgeDirectionLogic';
 
 const EdgeIcon: React.FC = () => (
