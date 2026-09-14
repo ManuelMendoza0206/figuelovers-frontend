@@ -69,6 +69,31 @@ export interface BfsData {
   orden_recorrido: string[];
 }
 
+export interface JohnsonResultData {
+  distances: Record<string, Record<string, number | null>>;
+  paths: Record<string, Record<string, string[]>>;
+  has_negative_cycle: boolean;
+  message?: string;
+}
+
+export interface AssignmentAssignment {
+  row: string;
+  col: string;
+  cost: number;
+}
+
+export interface AssignmentResultData {
+  assignments: AssignmentAssignment[];
+  total_cost: number;
+}
+
+export interface AssignmentPayload {
+  cost_matrix: number[][];
+  row_labels?: string[];
+  col_labels?: string[];
+  maximize?: boolean;
+}
+
 export interface GraphFileMetadata {
   version: string;
   name?: string | null;

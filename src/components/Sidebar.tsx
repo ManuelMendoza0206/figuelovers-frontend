@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
-import { Settings } from 'lucide-react';
+import { BriefcaseBusiness, GitBranch, Settings } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useGraphStore } from '../store/useGraphStore';
 import { useEdgeDirectionLogic } from '../hooks/useEdgeDirectionLogic';
 import { NodePropsForm } from './NodePropsForm';
@@ -7,6 +8,9 @@ import { EdgePropsForm } from './EdgePropsForm';
 import { EmptyState } from './EmptyState';
 
 export const Sidebar: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const {
     nodes,
     edges,
@@ -87,6 +91,47 @@ export const Sidebar: React.FC = () => {
       </div>
 
       <div className="custom-scrollbar flex-1 overflow-y-auto p-4 md:p-5">
+        <section className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-sm">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-muted text-brand">
+              <GitBranch className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Algoritmos</p>
+              <h3 className="text-sm font-bold text-ink">Herramientas</h3>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {[
+              { label: 'Johnson', to: '/johnson' },
+              { label: 'Asignación', to: '/assignment' },
+            ].map(({ label, to }) => {
+              const isActive = location.pathname === to;
+
+              return (
+                <button
+                  key={to}
+                  type="button"
+                  onClick={() => navigate(to)}
+                  className={[
+                    'flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-sm font-medium transition-colors',
+                    isActive
+                      ? 'border-brand bg-brand/10 text-brand'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-brand/40 hover:bg-brand-muted/30',
+                  ].join(' ')}
+                >
+                  <span className="flex items-center gap-2">
+                    <BriefcaseBusiness className="h-4 w-4" />
+                    {label}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Abrir</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         {selectedNode && (
           <NodePropsForm
             key={`node-${selectedNode.id}`}

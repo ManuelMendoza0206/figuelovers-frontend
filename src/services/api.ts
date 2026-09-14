@@ -7,7 +7,10 @@ import type {
   SuccessResponse,
   GraphValidationData,
   DijkstraData,
-  BfsData
+  BfsData,
+  JohnsonResultData,
+  AssignmentPayload,
+  AssignmentResultData,
 } from '../types/graph';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -65,6 +68,26 @@ export const GraphServiceAPI = {
       {
         params: { start_node: startNode }, 
       }
+    );
+    return response.data;
+  },
+
+  runJohnson: async (
+    payload: GraphPayloadSchema
+  ): Promise<JohnsonResultData> => {
+    const response = await apiClient.post<JohnsonResultData>(
+      '/graph/algorithms/johnson',
+      payload
+    );
+    return response.data;
+  },
+
+  runAssignment: async (
+    payload: AssignmentPayload
+  ): Promise<AssignmentResultData> => {
+    const response = await apiClient.post<AssignmentResultData>(
+      '/graph/algorithms/assignment',
+      payload
     );
     return response.data;
   },
