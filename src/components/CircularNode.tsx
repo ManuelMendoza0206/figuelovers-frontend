@@ -100,13 +100,13 @@ const CircularNode: React.FC<
     <div
       className={[
         'relative flex h-[76px] w-[76px] items-center justify-center',
-        'rounded-full border-2 bg-white',
+        'cosmic-node rounded-full border-2 bg-[#17264b]',
         'transition-all duration-150',
         'select-none',
 
         selected
-          ? 'border-brand shadow-[0_0_0_5px_rgba(5,168,170,0.14),0_8px_22px_rgba(36,47,64,0.15)]'
-          : 'border-ink shadow-[0_5px_16px_rgba(36,47,64,0.12)]',
+          ? 'border-brand shadow-[0_0_0_5px_rgba(114,230,224,0.14),0_8px_30px_rgba(114,230,224,0.3)]'
+          : 'border-[#a4b9ff] shadow-[0_5px_22px_rgba(0,0,0,0.3)]',
       ].join(' ')}
       aria-label={`Nodo ${data.label}`}
       data-node-id={id}

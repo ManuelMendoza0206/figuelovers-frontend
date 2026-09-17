@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -66,7 +66,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -80,12 +80,12 @@ export const Modal: React.FC<ModalProps> = ({
         ref={modalRef}
         tabIndex={-1}
         className={[
-          'flex max-h-[85vh] w-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl animate-in fade-in zoom-in-95 duration-200',
+          'flex max-h-[85vh] w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#101a31] shadow-2xl animate-in fade-in zoom-in-95 duration-200',
           widthMap[maxWidth],
           className,
         ].join(' ')}
       >
-        <div className="flex items-center justify-between border-b border-border bg-surface px-6 py-4">
+        <div className="flex items-center justify-between border-b border-white/10 bg-[#101a31] px-6 py-4">
           <div className="flex items-center gap-3">
             {icon && (
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-muted text-brand">
@@ -112,12 +112,12 @@ export const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
 
-        <div className="custom-scrollbar flex-1 overflow-auto bg-surface-muted/50 px-6 py-5">
+        <div className="custom-scrollbar flex-1 overflow-auto bg-[#0b1328] px-6 py-5">
           {children}
         </div>
 
         {footer && (
-          <div className="flex items-center justify-end gap-3 border-t border-border bg-surface px-6 py-4">
+          <div className="flex items-center justify-end gap-3 border-t border-white/10 bg-[#101a31] px-6 py-4">
             {footer}
           </div>
         )}

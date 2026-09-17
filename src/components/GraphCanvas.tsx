@@ -1,18 +1,18 @@
 import React, { useCallback, useMemo, useState } from 'react';
 
 import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  BackgroundVariant,
-  ReactFlowProvider,
-  useReactFlow,
-  ConnectionMode,
+    Background,
+    BackgroundVariant,
+    ConnectionMode,
+    Controls,
+    MiniMap,
+    ReactFlowProvider,
+    useReactFlow,
 } from 'reactflow';
 
 import type {
-  NodeMouseHandler,
-  EdgeMouseHandler,
+    EdgeMouseHandler,
+    NodeMouseHandler,
 } from 'reactflow';
 
 import 'reactflow/dist/style.css';
@@ -20,25 +20,25 @@ import 'reactflow/dist/style.css';
 import { useGraphStore } from '../store/useGraphStore';
 
 import type {
-  AppNode,
-  AppEdge,
+    AppEdge,
+    AppNode,
 } from '../types/graph';
 
 import CircularNode from './CircularNode';
 
-import GraphToolbar from './GraphToolbar';
+import { BRAND_COLOR, createEdgeStyle, EDGE_STROKE_WIDTH } from '../lib/graphEdge';
+import {
+    getBidirectionalCurveInfo,
+    getDynamicEdgeHandles,
+    getSelfLoopHandles,
+    getSelfLoopInfo,
+    NO_CURVE,
+    NO_SELF_LOOP,
+} from '../lib/graphGeometry';
 import type { GraphTool } from '../types/graph';
 import { WeightedStraightEdge } from './edges/WeightedStraightEdge';
 import { GraphHud } from './GraphHud';
-import { BRAND_COLOR, EDGE_STROKE_WIDTH, createEdgeStyle } from '../lib/graphEdge';
-import {
-  getDynamicEdgeHandles,
-  getSelfLoopHandles,
-  getBidirectionalCurveInfo,
-  getSelfLoopInfo,
-  NO_CURVE,
-  NO_SELF_LOOP,
-} from '../lib/graphGeometry';
+import GraphToolbar from './GraphToolbar';
 
 const nodeTypes = {
   circularGraphNode: CircularNode,
@@ -219,7 +219,7 @@ const CanvasContent: React.FC = () => {
         connectionLineStyle={{ stroke: BRAND_COLOR, strokeWidth: EDGE_STROKE_WIDTH }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#cbd5e1" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#344568" />
         <Controls
           position="bottom-right"
           showInteractive={false}
@@ -228,7 +228,7 @@ const CanvasContent: React.FC = () => {
         <MiniMap
           position="top-right"
           nodeColor={BRAND_COLOR}
-          maskColor="rgba(248, 250, 252, 0.78)"
+          maskColor="rgba(7, 13, 29, 0.78)"
           nodeStrokeWidth={2}
           pannable
           zoomable

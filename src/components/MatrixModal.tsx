@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
 import { Table } from 'lucide-react';
-import { Modal } from '../ui';
-import type { AdjacencyMatrixResponse } from '../types/graph';
+import React, { useMemo } from 'react';
 import { truncateId } from '../lib/truncate';
+import type { AdjacencyMatrixResponse } from '../types/graph';
+import { Modal } from '../ui';
 
 interface MatrixModalProps {
   isOpen: boolean;
@@ -196,11 +196,11 @@ export const MatrixModal: React.FC<MatrixModalProps> = ({
                   </td>
                 ))}
 
-                <td className="border-l-2 border-t-2 border-border bg-slate-100 px-4 py-3 font-mono font-extrabold text-brand">
+                <td className="border-l-2 border-t-2 border-border bg-brand/10 px-4 py-3 font-mono font-extrabold text-brand">
                   {rowSums.reduce((total, value) => total + value, 0)}
                 </td>
 
-                <td className="border-l border-t-2 border-border bg-slate-100 px-4 py-3 font-mono font-extrabold text-brand">
+                <td className="border-l border-t-2 border-border bg-brand/10 px-4 py-3 font-mono font-extrabold text-brand">
                   {rowActiveCounts.reduce((total, count) => total + count, 0)}
                 </td>
               </tr>
@@ -216,7 +216,7 @@ export const MatrixModal: React.FC<MatrixModalProps> = ({
                   </td>
                 ))}
 
-                <td className="border-l-2 border-t border-border bg-slate-100 px-4 py-3 font-mono font-extrabold text-brand">
+                <td className="border-l-2 border-t border-border bg-brand/10 px-4 py-3 font-mono font-extrabold text-brand">
                   {rowActiveCounts.reduce((total, count) => total + count, 0)}
                 </td>
 

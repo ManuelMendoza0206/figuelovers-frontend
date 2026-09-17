@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "name": "Casiopea",
+    "created_at": "2026-09-17T00:00:00Z"
+  },
+  "graph": {
+    "nodes": [
+      { "id": "caph", "label": "Caph", "position": { "x": 80, "y": 220 } },
+      { "id": "schedar", "label": "Schedar", "position": { "x": 280, "y": 80 } },
+      { "id": "gamma-cassiopeiae", "label": "Gamma Cassiopeiae", "position": { "x": 500, "y": 220 } },
+      { "id": "ruchbah", "label": "Ruchbah", "position": { "x": 720, "y": 80 } },
+      { "id": "segin", "label": "Segin", "position": { "x": 930, "y": 230 } }
+    ],
+    "edges": [
+      { "id": "cassiopeia-caph-schedar", "source": "caph", "target": "schedar", "weight": 1, "is_directed": false },
+      { "id": "cassiopeia-schedar-gamma", "source": "schedar", "target": "gamma-cassiopeiae", "weight": 1, "is_directed": false },
+      { "id": "cassiopeia-gamma-ruchbah", "source": "gamma-cassiopeiae", "target": "ruchbah", "weight": 1, "is_directed": false },
+      { "id": "cassiopeia-ruchbah-segin", "source": "ruchbah", "target": "segin", "weight": 1, "is_directed": false }
+    ]
+  }
+}

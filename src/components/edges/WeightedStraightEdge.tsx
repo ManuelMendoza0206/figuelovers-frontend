@@ -1,14 +1,14 @@
-import { BaseEdge, EdgeLabelRenderer, getStraightPath } from 'reactflow';
 import type { EdgeProps } from 'reactflow';
+import { BaseEdge, EdgeLabelRenderer, getStraightPath } from 'reactflow';
 
+import { BRAND_COLOR } from '../../lib/graphEdge';
 import {
-  CURVE_CONTROL_POINT_OFFSET,
-  CURVE_LABEL_OFFSET,
-  SELF_LOOP_CONTROL_OFFSET,
-  SELF_LOOP_LATERAL_SPREAD,
-  SELF_LOOP_LABEL_OFFSET,
+    CURVE_CONTROL_POINT_OFFSET,
+    CURVE_LABEL_OFFSET,
+    SELF_LOOP_CONTROL_OFFSET,
+    SELF_LOOP_LABEL_OFFSET,
+    SELF_LOOP_LATERAL_SPREAD,
 } from '../../lib/graphGeometry';
-import { BRAND_COLOR, INK_COLOR } from '../../lib/graphEdge';
 
 interface WeightedEdgeData {
   isCurved?: boolean;
@@ -117,7 +117,7 @@ export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
               select-none
               rounded-md
               border
-              bg-white
+              bg-[#101b37]
               px-2
               py-0.5
               text-xs
@@ -127,8 +127,8 @@ export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              color: selected ? BRAND_COLOR : INK_COLOR,
-              borderColor: selected ? BRAND_COLOR : '#cbd5e1',
+              color: selected ? BRAND_COLOR : '#dbe7ff',
+              borderColor: selected ? BRAND_COLOR : '#344568',
               zIndex: selected ? 50 : 30,
             }}
           >
