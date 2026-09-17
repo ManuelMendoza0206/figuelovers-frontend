@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Download, Upload, Trash2, Database, List } from 'lucide-react';
 import { useGraphStore } from '../store/useGraphStore';
 import { GraphServiceAPI } from '../services/api';
@@ -59,6 +60,8 @@ const Spinner = () => (
 );
 
 export const Navbar: React.FC = () => {
+  const navigate = useNavigate();
+
   const {
     nodes,
     edges,
@@ -197,7 +200,13 @@ export const Navbar: React.FC = () => {
         <div className="flex min-h-16 w-full items-center px-4 py-2 sm:px-6 lg:px-8">
           
           {/* 1. Logo y Título */}
-          <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            title="Ir al editor de grafos"
+            aria-label="Ir al editor de grafos"
+            className="flex shrink-0 cursor-pointer items-center gap-3 rounded-md transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand"
+          >
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-md">
               <img src="/logo.jpg" alt="Aristografos" className="h-full w-full object-cover" />
             </div>
@@ -208,7 +217,7 @@ export const Navbar: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Grafos y algoritmos</span>
               </div>
             </div>
-          </div>
+          </button>
 
           {/* 2. Separador y Botón Limpiar (Izquierda) */}
           <div className="mx-6 hidden h-8 w-px bg-slate-200 sm:block" />
