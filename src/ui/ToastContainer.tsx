@@ -1,6 +1,6 @@
+import { AlertCircle, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import React from 'react';
 import { useToast } from '../hooks/useToast';
-import { CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
 const icons = {
   success: CheckCircle,
@@ -40,7 +40,7 @@ export const ToastContainer: React.FC = () => {
           <div
             key={toast.id}
             className={[
-              'pointer-events-auto flex items-center gap-3 rounded-xl border bg-white px-4 py-3 text-xs font-semibold shadow-xl animate-in fade-in slide-in-from-top-2',
+              'pointer-events-auto flex items-center gap-3 rounded-xl border bg-[#101b37] px-4 py-3 text-xs font-semibold text-ink shadow-xl animate-in fade-in slide-in-from-top-2',
               borderColors[toast.type],
             ].join(' ')}
             role="alert"

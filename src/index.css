@@ -1,12 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #05A8AA;
-  --color-brand-hover: #078f91;
-  --color-brand-muted: #05A8AA10;
-  --color-ink: #242F40;
-  --color-ink-muted: #242F40B3;
-  --color-ink-subtle: #242F4070;
+  --color-brand: #72e6e0;
+  --color-brand-hover: #a1f4ec;
+  --color-brand-muted: #72e6e01a;
+  --color-ink: #f2f7ff;
+  --color-ink-muted: #b7c5dc;
+  --color-ink-subtle: #71819d;
   --color-error: #f43f5e;
   --color-error-bg: #fef2f2;
   --color-error-border: #fecdd3;
@@ -16,10 +17,10 @@
   --color-warning: #f59e0b;
   --color-warning-bg: #fffbeb;
   --color-warning-border: #fde68a;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-border-muted: #cbd5e1;
+  --color-surface: #101a31;
+  --color-surface-muted: #0b1328;
+  --color-border: #253455;
+  --color-border-muted: #344568;
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
@@ -29,7 +30,7 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-focus: 0 0 0 4px rgb(5 168 170 / 0.15);
+  --shadow-focus: 0 0 0 4px rgb(114 230 224 / 0.16);
 }
 
 html,
@@ -47,14 +48,9 @@ body {
 }
 
 body {
-  background: #f1f5f9;
+  background: #070d1d;
   font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
+    Manrope,
     sans-serif;
 
   -webkit-font-smoothing: antialiased;
@@ -102,4 +98,75 @@ button {
 ::selection {
   background: #cbd5e1;
   color: #0f172a;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: Manrope, sans-serif;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-mono {
+  font-family: 'DM Mono', monospace;
+}
+
+.space-shell {
+  background:
+    radial-gradient(circle at 16% 18%, rgb(81 112 196 / 0.2), transparent 26rem),
+    radial-gradient(circle at 82% 8%, rgb(114 230 224 / 0.1), transparent 22rem),
+    linear-gradient(135deg, #070d1d 0%, #0b1328 52%, #111b35 100%);
+}
+
+.starfield {
+  background-image:
+    radial-gradient(circle at 10% 20%, rgb(255 255 255 / 0.72) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 78% 28%, rgb(114 230 224 / 0.65) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 36% 82%, rgb(255 214 132 / 0.6) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 88% 76%, rgb(255 255 255 / 0.45) 0 1px, transparent 1.5px);
+  background-size: 180px 180px, 240px 240px, 310px 310px, 220px 220px;
+}
+
+.glass-panel {
+  border: 1px solid rgb(132 160 211 / 0.22);
+  background: rgb(16 26 49 / 0.78);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.eyebrow {
+  color: #72e6e0;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.cosmic-node {
+  box-shadow: 0 0 0 1px rgb(114 230 224 / 0.22), 0 0 28px rgb(114 230 224 / 0.18);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rise-in {
+    animation: rise-in 650ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .drift {
+    animation: drift 8s ease-in-out infinite;
+  }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -8px, 0); }
 }

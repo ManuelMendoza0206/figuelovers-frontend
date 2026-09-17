@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "name": "Osa Mayor",
+    "created_at": "2026-09-17T00:00:00Z"
+  },
+  "graph": {
+    "nodes": [
+      { "id": "dubhe", "label": "Dubhe", "position": { "x": 120, "y": 100 } },
+      { "id": "merak", "label": "Merak", "position": { "x": 120, "y": 280 } },
+      { "id": "phecda", "label": "Phecda", "position": { "x": 360, "y": 280 } },
+      { "id": "megrez", "label": "Megrez", "position": { "x": 360, "y": 100 } },
+      { "id": "alioth", "label": "Alioth", "position": { "x": 600, "y": 100 } },
+      { "id": "mizar", "label": "Mizar", "position": { "x": 820, "y": 180 } },
+      { "id": "alkaid", "label": "Alkaid", "position": { "x": 1030, "y": 300 } }
+    ],
+    "edges": [
+      { "id": "ursa-dubhe-merak", "source": "dubhe", "target": "merak", "weight": 1, "is_directed": false },
+      { "id": "ursa-merak-phecda", "source": "merak", "target": "phecda", "weight": 1, "is_directed": false },
+      { "id": "ursa-phecda-megrez", "source": "phecda", "target": "megrez", "weight": 1, "is_directed": false },
+      { "id": "ursa-megrez-dubhe", "source": "megrez", "target": "dubhe", "weight": 1, "is_directed": false },
+      { "id": "ursa-megrez-alioth", "source": "megrez", "target": "alioth", "weight": 1, "is_directed": false },
+      { "id": "ursa-alioth-mizar", "source": "alioth", "target": "mizar", "weight": 1, "is_directed": false },
+      { "id": "ursa-mizar-alkaid", "source": "mizar", "target": "alkaid", "weight": 1, "is_directed": false }
+    ]
+  }
+}

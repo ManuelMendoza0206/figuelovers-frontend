@@ -1,21 +1,22 @@
+import { Database, Download, List, Trash2, Upload } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { Download, Upload, Trash2, Database, List } from 'lucide-react';
-import { useGraphStore } from '../store/useGraphStore';
-import { GraphServiceAPI } from '../services/api';
 import { error, success } from '../hooks/useToast';
+import { GraphServiceAPI } from '../services/api';
+import { useGraphStore } from '../store/useGraphStore';
 import { IconButton } from '../ui';
 
 import {
-  buildGraphPayload,
-  downloadGraphAsJson,
-  parseGraphFile,
-  graphPayloadToFlow,
-  GraphFileParseError,
+    buildGraphPayload,
+    downloadGraphAsJson,
+    GraphFileParseError,
+    graphPayloadToFlow,
+    parseGraphFile,
 } from '../utils/graphFile';
 
+import { AdjListModal } from './AdjListModal';
+import { ConfirmDialog } from './ConfirmDialog';
 import { HelpModal } from './HelpModal';
 import { MatrixModal } from './MatrixModal';
-import { AdjListModal } from './AdjListModal';
 
 const extractErrorMessage = (
   err: unknown,
@@ -73,6 +74,7 @@ export const Navbar: React.FC = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [isMatrixModalOpen, setIsMatrixModalOpen] = useState(false);
   const [isAdjListModalOpen, setIsAdjListModalOpen] = useState(false);
+  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -179,45 +181,44 @@ export const Navbar: React.FC = () => {
       return;
     }
 
-    const confirmed = window.confirm(
-      '¿Estás seguro de que quieres eliminar todo el grafo? Esta acción no se puede deshacer.'
-    );
+    setIsClearDialogOpen(true);
+  };
 
-    if (!confirmed) return;
-
+  const confirmClearGraph = () => {
     clearGraph();
     setIsMatrixModalOpen(false);
     setIsAdjListModalOpen(false);
     success('Grafo limpiado correctamente.');
+    setIsClearDialogOpen(false);
   };
 
   return (
     <>
-      <header className="relative z-30 w-full border-b border-border bg-slate-50/80 backdrop-blur-sm shadow-sm">
+      <header className="relative z-30 w-full border-b border-white/10 bg-[#070d1dcc] shadow-sm backdrop-blur-xl">
         <div className="flex min-h-16 w-full items-center px-4 py-2 sm:px-6 lg:px-8">
           
           {/* 1. Logo y Título */}
           <div className="flex shrink-0 items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-md">
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-brand/30 shadow-[0_0_24px_rgba(114,230,224,0.16)]">
               <img src="/logo.jpg" alt="Aristografos" className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl font-extrabold tracking-tight text-slate-800">Aristografos</h1>
+              <h1 className="font-display text-xl font-extrabold tracking-tight text-ink">FIGUELOVERS</h1>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Grafos y algoritmos</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+                <span className="eyebrow text-[9px] tracking-[0.16em]">Constelaciones y algoritmos</span>
               </div>
             </div>
           </div>
 
           {/* 2. Separador y Botón Limpiar (Izquierda) */}
-          <div className="mx-6 hidden h-8 w-px bg-slate-200 sm:block" />
+          <div className="mx-6 hidden h-8 w-px bg-white/10 sm:block" />
           
           <IconButton
             onClick={handleClearGraph}
             title="Eliminar todo el grafo"
             aria-label="Eliminar todo el grafo"
-            className="hidden sm:flex items-center gap-2 rounded-md bg-red-100/60 px-3 py-1.5 text-red-700 transition-colors hover:bg-red-200/60 border border-red-200"
+            className="hidden sm:flex items-center gap-2 rounded-md border border-[#ff9f80]/30 bg-[#ff9f80]/10 px-3 py-1.5 text-[#ffb09a] transition-colors hover:bg-[#ff9f80]/20"
           >
             <Trash2 className="h-4 w-4" />
             <span className="font-semibold">Limpiar Todo</span>
@@ -238,10 +239,10 @@ export const Navbar: React.FC = () => {
                 disabled={isFetchingMatrix}
                 title="Ver matriz de adyacencia"
                 aria-label="Ver matriz de adyacencia"
-                className="flex items-center gap-2 rounded-md bg-teal-100/50 px-3 py-1.5 text-teal-700 transition-colors hover:bg-teal-200/50 border border-teal-200"
+                className="flex items-center gap-2 rounded-md border border-brand/25 bg-brand/10 px-3 py-1.5 text-brand transition-colors hover:bg-brand/20"
               >
                 {isFetchingMatrix ? <Spinner /> : <Database className="h-4 w-4" />}
-                <span className="hidden md:inline font-semibold">Ver Matriz</span>
+                <span className="hidden md:inline font-semibold">Ver matriz</span>
               </IconButton>
 
               <IconButton
@@ -249,15 +250,15 @@ export const Navbar: React.FC = () => {
                 disabled={isFetchingList}
                 title="Ver lista de adyacencia"
                 aria-label="Ver lista de adyacencia"
-                className="flex items-center gap-2 rounded-md bg-teal-100/50 px-3 py-1.5 text-teal-700 transition-colors hover:bg-teal-200/50 border border-teal-200"
+                className="flex items-center gap-2 rounded-md border border-[#a4b9ff]/25 bg-[#a4b9ff]/10 px-3 py-1.5 text-[#c4d0ff] transition-colors hover:bg-[#a4b9ff]/20"
               >
                 {isFetchingList ? <Spinner /> : <List className="h-4 w-4" />}
-                <span className="hidden md:inline font-semibold">Ver Lista</span>
+                <span className="hidden md:inline font-semibold">Ver lista</span>
               </IconButton>
             </div>
 
             {/* Separador */}
-            <div className="hidden h-8 w-px bg-slate-200 sm:block" />
+            <div className="hidden h-8 w-px bg-white/10 sm:block" />
 
             {/* Archivos (Gris/Teal claro) */}
             <div className="flex items-center gap-2">
@@ -265,7 +266,7 @@ export const Navbar: React.FC = () => {
                 onClick={handleExportJson} 
                 title="Guardar grafo en JSON"
                 aria-label="Guardar grafo en JSON"
-                className="flex items-center gap-2 rounded-md bg-slate-100 px-3 py-1.5 text-slate-700 transition-colors hover:bg-slate-200 border border-slate-200"
+                className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-ink-muted transition-colors hover:bg-brand-muted hover:text-ink"
               >
                 <Download className="h-4 w-4 text-teal-700" />
                 <span className="hidden sm:inline font-semibold">Guardar JSON</span>
@@ -276,7 +277,7 @@ export const Navbar: React.FC = () => {
                 disabled={isImporting} 
                 title="Cargar grafo desde JSON"
                 aria-label="Cargar grafo desde JSON"
-                className="flex items-center gap-2 rounded-md bg-slate-100 px-3 py-1.5 text-slate-700 transition-colors hover:bg-slate-200 border border-slate-200"
+                className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-ink-muted transition-colors hover:bg-brand-muted hover:text-ink"
               >
                 {isImporting ? <Spinner /> : <Upload className="h-4 w-4 text-teal-700" />}
                 <span className="hidden sm:inline font-semibold">Cargar JSON</span>
@@ -307,6 +308,14 @@ export const Navbar: React.FC = () => {
         onClose={() => setIsAdjListModalOpen(false)}
         data={validationData?.lista_adyacencia ?? null}
         folioByNodeId={folioByNodeId}
+      />
+      <ConfirmDialog
+        isOpen={isClearDialogOpen}
+        title="¿Limpiar esta constelación?"
+        message="Se eliminarán todas las estrellas y conexiones del lienzo. Esta acción no se puede deshacer."
+        confirmLabel="Limpiar todo"
+        onCancel={() => setIsClearDialogOpen(false)}
+        onConfirm={confirmClearGraph}
       />
     </>
   );

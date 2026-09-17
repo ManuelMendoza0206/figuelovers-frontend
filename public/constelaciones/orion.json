@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "name": "Orion",
+    "created_at": "2026-09-17T00:00:00Z"
+  },
+  "graph": {
+    "nodes": [
+      { "id": "betelgeuse", "label": "Betelgeuse", "position": { "x": 180, "y": 80 } },
+      { "id": "bellatrix", "label": "Bellatrix", "position": { "x": 420, "y": 80 } },
+      { "id": "alnitak", "label": "Alnitak", "position": { "x": 235, "y": 260 } },
+      { "id": "alnilam", "label": "Alnilam", "position": { "x": 300, "y": 250 } },
+      { "id": "mintaka", "label": "Mintaka", "position": { "x": 365, "y": 240 } },
+      { "id": "saiph", "label": "Saiph", "position": { "x": 190, "y": 500 } },
+      { "id": "rigel", "label": "Rigel", "position": { "x": 430, "y": 500 } },
+      { "id": "meissa", "label": "Meissa", "position": { "x": 300, "y": -70 } }
+    ],
+    "edges": [
+      { "id": "orion-betelgeuse-meissa", "source": "betelgeuse", "target": "meissa", "weight": 1, "is_directed": false },
+      { "id": "orion-meissa-bellatrix", "source": "meissa", "target": "bellatrix", "weight": 1, "is_directed": false },
+      { "id": "orion-betelgeuse-alnitak", "source": "betelgeuse", "target": "alnitak", "weight": 1, "is_directed": false },
+      { "id": "orion-bellatrix-mintaka", "source": "bellatrix", "target": "mintaka", "weight": 1, "is_directed": false },
+      { "id": "orion-alnitak-alnilam", "source": "alnitak", "target": "alnilam", "weight": 1, "is_directed": false },
+      { "id": "orion-alnilam-mintaka", "source": "alnilam", "target": "mintaka", "weight": 1, "is_directed": false },
+      { "id": "orion-alnitak-saiph", "source": "alnitak", "target": "saiph", "weight": 1, "is_directed": false },
+      { "id": "orion-mintaka-rigel", "source": "mintaka", "target": "rigel", "weight": 1, "is_directed": false },
+      { "id": "orion-saiph-rigel", "source": "saiph", "target": "rigel", "weight": 1, "is_directed": false }
+    ]
+  }
+}

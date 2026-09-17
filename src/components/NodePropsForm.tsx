@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
 import { Save, Trash2 } from 'lucide-react';
-import { Button, SectionHeader, TextField } from '../ui';
+import React, { useEffect, useState } from 'react';
 import type { AppNode } from '../types/graph';
+import { Button, SectionHeader, TextField } from '../ui';
 
 const NodeIcon: React.FC = () => (
   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,7 +65,7 @@ export const NodePropsForm: React.FC<NodePropsFormProps> = ({
           helperText={`${nodeLabel.length}/50`}
         />
 
-        <Button type="submit" leftIcon={<Save className="h-4 w-4" />} disabled={disabled || !nodeLabel.trim()}>
+        <Button type="submit" leftIcon={<Save className="h-4 w-4" />} className="bg-brand text-[#07101f] hover:bg-brand-hover" disabled={disabled || !nodeLabel.trim()}>
           Guardar nombre
         </Button>
 
@@ -75,6 +75,7 @@ export const NodePropsForm: React.FC<NodePropsFormProps> = ({
           type="button"
           onClick={onDelete}
           variant="danger"
+          className="border border-[#ff9f80]/30 bg-[#ff9f80]/10 text-[#ffb09a] hover:bg-[#ff9f80]/20"
           leftIcon={<Trash2 className="h-4 w-4" />}
           disabled={disabled}
         >
