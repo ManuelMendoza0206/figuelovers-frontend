@@ -38,7 +38,7 @@ export const NodePropsForm: React.FC<NodePropsFormProps> = ({
   };
 
   return (
-    <section className="animate-in fade-in slide-in-from-right-2 duration-200">
+    <section className="animate-in fade-in slide-in-from-right-2">
       <SectionHeader
         icon={<NodeIcon />}
         label="Nodo"

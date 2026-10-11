@@ -10,8 +10,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
+// `text-white` sobre teal daba 1.9:1. El negro del vacio sobre la marca
+// da 12.8:1 y es lo que ya usa el CTA de la landing.
 const variantClasses = {
-  primary: 'bg-brand text-white hover:bg-brand-hover shadow-sm',
+  primary: 'bg-brand text-[#07101f] hover:bg-brand-hover shadow-sm',
   secondary: 'bg-surface text-ink border border-border hover:bg-surface-muted hover:border-border-muted',
   danger: 'bg-error text-white hover:bg-rose-600 shadow-sm',
   ghost: 'bg-transparent text-ink hover:bg-surface-muted',

@@ -21,6 +21,12 @@
   --color-surface-muted: #0b1328;
   --color-border: #253455;
   --color-border-muted: #344568;
+  /* Vacio de la pizarra. Negro con leve carga azul: es el fondo real
+     del espacio, no un navyDerived de los paneles. */
+  --color-void: #03060f;
+  --color-void-deep: #010206;
+  /* Llegada segura: desaceleracion exponencial, sin rebote. */
+  --ease-confident: cubic-bezier(0.16, 1, 0.3, 1);
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
@@ -86,18 +92,27 @@ button {
   background: transparent;
 }
 
+/* Superficies del navegador. Vienen con su propia paleta (gris claro)
+   que no pertenece a ningun sistema de diseno: sobre un lienzo negro
+   el scrollbar gris canta mas que el contenido. */
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: rgb(114 230 224 / 0.26);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: rgb(114 230 224 / 0.48);
 }
 
 ::selection {
-  background: #cbd5e1;
-  color: #0f172a;
+  background: rgb(114 230 224 / 0.3);
+  color: #f2f7ff;
+}
+
+input,
+textarea,
+select {
+  caret-color: #72e6e0;
 }
 
 button,
@@ -151,9 +166,73 @@ select {
   box-shadow: 0 0 0 1px rgb(114 230 224 / 0.22), 0 0 28px rgb(114 230 224 / 0.18);
 }
 
+/* ---------------------------------------------------------------------------
+   LENGUAJE DE MOVIMIENTO
+
+   Una sola idea: el observatorio se ENCIENDE.
+
+   - Momento focal (pizarra): el vacio abre, la nebulosa respira, el campo de
+     estrellas se resuelve y cada estrella centellea con su propia fase.
+   - Continuidad: los paneles del lateral entran desde la derecha cuando
+     seleccionas algo distinto; los modales y toasts aparecen con origen.
+   - Feedback: el pulso que viaja por una arista dirigida dice hacia donde
+     va; el anillo de la estrella seleccionada dice que ya la agarraste.
+
+   Todo lo demas (hover, cambios de color) son transiciones de estado cortas,
+   no animaciones. Por eso este archivo define las entradas UNA vez y los
+   componentes solo las componen.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+  /* Entradas compartidas por modales, toasts y paneles del lateral.
+
+     Se componian con `animate-in fade-in zoom-in-95` etc., clases que
+     NO existen en Tailwind v4: los cinco usos que tenian eran letra
+     muertay por eso nada entraba. Ahora si existen y comparten un solo
+     keyframe, con las variantes expresadas como variables. */
+  .animate-in {
+    animation-name: enter-rise;
+    animation-duration: 200ms;
+    animation-timing-function: var(--ease-confident);
+    animation-fill-mode: both;
+  }
+
+  .fade-in {
+    --enter-opacity: 0;
+  }
+
+  .zoom-in-95 {
+    --enter-scale: 0.95;
+  }
+
+  .slide-in-from-top-2 {
+    --enter-x: 0rem;
+    --enter-y: -0.5rem;
+  }
+
+  .slide-in-from-right-2 {
+    --enter-x: 0.5rem;
+    --enter-y: 0rem;
+  }
+}
+
+@keyframes enter-rise {
+  from {
+    opacity: var(--enter-opacity, 1);
+    transform:
+      translate(var(--enter-x, 0rem), var(--enter-y, 0rem))
+      scale(var(--enter-scale, 1));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .rise-in {
-    animation: rise-in 650ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation: rise-in 650ms var(--ease-confident) both;
   }
 
   .drift {
@@ -169,4 +248,277 @@ select {
 @keyframes drift {
   0%, 100% { transform: translate3d(0, 0, 0); }
   50% { transform: translate3d(0, -8px, 0); }
+}
+
+/* ---------------------------------------------------------------------------
+   EL VACIO (fondo de la pizarra)
+
+   Tres capas, todas en `pointer-events: none` y todas detrAs del contenido:
+     1. `.space-field`  negro base, se ENCIENDE al entrar
+     2. `.field-nebula` dos velos de nebulosa que respiran, muy lentos
+     3. `.field-stars`  campo de estrellas de 7 escalas, se RESUELVE
+   --------------------------------------------------------------------------- */
+
+.space-field {
+  background-color: var(--color-void);
+  background-image:
+    radial-gradient(120% 92% at 14% 16%, rgb(58 82 176 / 0.20), transparent 58%),
+    radial-gradient(94% 84% at 84% 76%, rgb(16 122 128 / 0.16), transparent 62%),
+    radial-gradient(72% 70% at 52% 112%, rgb(88 60 150 / 0.16), transparent 60%);
+}
+
+.field-nebula {
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.field-nebula-a {
+  background: radial-gradient(
+    closest-side circle at 42% 38%,
+    rgb(64 92 200 / 0.24),
+    transparent 72%
+  );
+}
+
+.field-nebula-b {
+  background: radial-gradient(
+    closest-side circle at 58% 62%,
+    rgb(20 132 138 / 0.20),
+    transparent 70%
+  );
+}
+
+.field-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Ladrillos coprimos a proposito (227/313/431/557/691): con medidas
+     harmonicas el campo developingaba filas y se leia como papel
+     cuadriculado. Asi el patron combinado no se repite en la pantalla. */
+  background-image:
+    radial-gradient(circle at 18% 24%, rgb(255 255 255 / 0.6) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 71% 15%, rgb(163 200 255 / 0.55) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 44% 71%, rgb(255 219 143 / 0.5) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 63% 38%, rgb(198 226 255 / 0.7) 0 1.7px, transparent 2.6px),
+    radial-gradient(circle at 29% 83%, rgb(114 230 224 / 0.6) 0 2.1px, transparent 3.2px);
+  background-size:
+    227px 227px,
+    313px 313px,
+    431px 431px,
+    557px 557px,
+    691px 691px;
+  background-repeat: repeat;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .space-field {
+    animation: void-open 1100ms var(--ease-confident) both;
+  }
+
+  .field-stars {
+    animation: stars-resolve 1300ms var(--ease-confident) both;
+  }
+
+  .field-nebula-a {
+    animation: nebula-breathe-a 38s ease-in-out infinite;
+  }
+
+  .field-nebula-b {
+    animation: nebula-breathe-b 51s ease-in-out infinite;
+  }
+}
+
+@keyframes void-open {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes stars-resolve {
+  from { transform: scale(1.05); }
+  to { transform: scale(1); }
+}
+
+@keyframes nebula-breathe-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, -2%, 0) scale(1.07); }
+}
+
+@keyframes nebula-breathe-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.04); }
+  50% { transform: translate3d(-2.5%, 2.5%, 0) scale(1); }
+}
+
+/* ---------------------------------------------------------------------------
+   LA ESTRELLA (nodo)
+
+   Tres piezas apiladas dentro de la caja de 76px que React Flow usa para
+   calcular handles y aristas:
+     - halo     la luz que la estrella emite sobre el vacio
+     - nucleo   el cuerpo, con su propio centelleo
+     - anillo   solo al seleccionar: el momento de "te tengo"
+
+   La etiqueta va FUERA de la caja (posicion absoluta), asi que ni el
+   ancho ni los porcentajes de los handles se ven afectados.
+   --------------------------------------------------------------------------- */
+
+.star-halo {
+  background: radial-gradient(
+    circle,
+    rgb(118 162 255 / 0.15) 0%,
+    rgb(88 128 228 / 0.06) 42%,
+    transparent 70%
+  );
+  filter: blur(10px);
+  transform: scale(1.55);
+}
+
+/* Perfil de EMISION, no de superficie.
+   Una esfera se lee por el brillo descentado hacia un lado; una
+   estrella por el centro reventado y la caida rapida. Por eso el
+   centro va al 50% 50% y el degrade se apaga antes del borde: si
+   llega al borde con color, vuelve a ser una bola. */
+.star-core {
+  background: radial-gradient(
+    circle at 50% 50%,
+    #ffffff 0%,
+    #e8f1ff 10%,
+    #a8c8ff 22%,
+    #5b7fd8 36%,
+    rgb(70 100 190 / 0.45) 50%,
+    rgb(44 66 140 / 0.16) 64%,
+    rgb(30 46 110 / 0.05) 78%,
+    transparent 90%
+  );
+  box-shadow:
+    0 0 16px 3px rgb(176 208 255 / 0.34),
+    0 0 40px 10px rgb(70 110 215 / 0.26),
+    0 10px 26px rgb(0 0 0 / 0.5);
+}
+
+.star-ring {
+  border: 1px solid rgb(114 230 224 / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(114 230 224 / 0.18),
+    0 0 30px 6px rgb(114 230 224 / 0.26);
+}
+
+/* Pastilla opaca en vez de text-shadow: la etiqueta vive DEBAJO de la
+   estrella y a veces cae sobre el halo de otra. Un velo plano la
+   mantiene legible sininventar otro objeto. */
+.star-label {
+  border-radius: 9999px;
+  background: rgb(3 6 15 / 0.62);
+  padding: 1px 6px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .star-core {
+    animation: star-twinkle 7s ease-in-out infinite;
+  }
+
+  .star-ring {
+    animation: star-lock 420ms var(--ease-confident) both;
+  }
+}
+
+/* Solo opacidad y transform: el nucleo se compone con la seleccion, y
+   animar `filter` en cada frame repintaria el halo de todos los nodos. */
+@keyframes star-twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.82; transform: scale(0.955); }
+}
+
+@keyframes star-lock {
+  from { transform: scale(1.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ---------------------------------------------------------------------------
+   EL HAZ (arista)
+
+   El pulso es un punto de luz que recorre el path con `offset-path`. Es
+   la unica razon por la que el haz es un haz y no un segmento: dice en
+   que sentido viaja la conexion. Solo viaja en las aristas dirigidas o
+   en la seleccionada, y solo si la constelacion esta encendida.
+   --------------------------------------------------------------------------- */
+
+.beam-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  offset-rotate: auto;
+  filter: drop-shadow(0 0 4px rgb(216 255 251 / 0.9));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .beam-pulse {
+    animation: beam-travel var(--beam-duration, 2800ms) linear infinite;
+    animation-delay: var(--beam-delay, 0ms);
+  }
+}
+
+@keyframes beam-travel {
+  0% { offset-distance: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   SUPERFICIES DE REACT FLOW
+
+   La libreria trae sus propios colores: los botones de zoom son BLANCOS
+   y la seleccion por caja es azul. Sobre el vacio eso rompe el mundo.
+   --------------------------------------------------------------------------- */
+
+.react-flow .react-flow__controls-button {
+  background: rgb(7 13 29 / 0.82);
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  color: #b7c5dc;
+  transition:
+    background 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.react-flow .react-flow__controls-button:hover {
+  background: rgb(114 230 224 / 0.14);
+  color: #72e6e0;
+}
+
+.react-flow .react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+.react-flow .react-flow__nodesselection-rect {
+  background: rgb(114 230 224 / 0.08);
+  border: 1px dotted rgb(114 230 224 / 0.75);
+}
+
+/* ---------------------------------------------------------------------------
+   MOVIMIENTO REDUCIDO
+
+   Se saca el movimiento, no la informacion: sin bucles, sin pulsos y sin
+   desplazamientos, pero el vacio sigue abierto y el haz sigue encendido.
+   Nada queda en estado invisible.
+   --------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in,
+  .drift,
+  .animate-in,
+  .animate-ping,
+  .space-field,
+  .field-stars,
+  .field-nebula-a,
+  .field-nebula-b,
+  .star-core,
+  .star-ring,
+  .beam-pulse {
+    animation: none;
+  }
+
+  .beam-pulse {
+    display: none;
+  }
 }

@@ -1,8 +1,10 @@
 import { ChevronDown, Crosshair, Route, Settings } from 'lucide-react';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEdgeDirectionLogic } from '../hooks/useEdgeDirectionLogic';
 import { useGraphStore } from '../store/useGraphStore';
+import type { GraphAssignmentTransfer } from '../utils/graphToMatrix';
+import { translateGraphToCostMatrix } from '../utils/graphToMatrix';
 import { ConfirmDialog } from './ConfirmDialog';
 import { EdgePropsForm } from './EdgePropsForm';
 import { EmptyState } from './EmptyState';
@@ -40,6 +42,64 @@ export const Sidebar: React.FC = () => {
     setIsToolsOpen(false);
   };
 
+  /**
+   * Comando de misión = Algoritmo Húngaro. Es UNA sola pantalla.
+   *
+   * Si la constelación actual se puede traducir a una matriz, se lleva
+   * esa matriz; si no (pocos nodos, sin conexiones, demasiados), abre
+   * la pantalla con una matriz vacía para que la cargues a mano.
+   *
+   * Antes esto eran dos botones distintos que iban a la misma ruta, lo
+   * que hacía pensar que eran dos algoritmos distintos.
+   */
+  const openAssignment = useCallback(() => {
+    const transfer: GraphAssignmentTransfer = {
+      nodes: nodes.map((node) => ({
+        id: node.id,
+        label: node.data?.label ?? '',
+      })),
+      edges: edges.map((edge) => ({
+        source: edge.source,
+        target: edge.target,
+        weight: edge.data?.weight ?? 1,
+        isDirected: edge.data?.is_directed === true,
+      })),
+    };
+
+    const probe = translateGraphToCostMatrix(
+      transfer.nodes,
+      transfer.edges,
+      'minimize'
+    );
+
+    if (probe.ok) {
+      navigate(
+        `/assignment?from=${encodeURIComponent(returnTo)}&origin=board`,
+        { state: { graphTransfer: transfer } }
+      );
+    } else {
+      navigate(`/assignment?from=${encodeURIComponent(returnTo)}`);
+    }
+
+    setIsToolsOpen(false);
+  }, [nodes, edges, navigate, returnTo]);
+
+  /** Solo para la etiqueta del boton: el grafo actual es traducible? */
+  const traducibleDesdePizarra = useMemo(
+    () =>
+      translateGraphToCostMatrix(
+        nodes.map((node) => ({ id: node.id, label: node.data?.label ?? '' })),
+        edges.map((edge) => ({
+          source: edge.source,
+          target: edge.target,
+          weight: edge.data?.weight ?? 1,
+          isDirected: edge.data?.is_directed === true,
+        })),
+        'minimize'
+      ).ok,
+    [nodes, edges]
+  );
+
   const handleSaveNode = useCallback(
     (label: string) => {
       if (!selectedNode) return;
@@ -51,7 +111,7 @@ export const Sidebar: React.FC = () => {
   const handleDeleteNode = useCallback(() => {
     if (!selectedNode) return;
     setConfirmAction('node');
-  }, [selectedNode, deleteNode]);
+  }, [selectedNode]);
 
   const handleSaveEdge = useCallback(
     (weight: number, isDirected: boolean) => {
@@ -74,7 +134,7 @@ export const Sidebar: React.FC = () => {
   const handleDeleteEdge = useCallback(() => {
     if (!selectedEdge) return;
     setConfirmAction('edge');
-  }, [selectedEdge, deleteEdge]);
+  }, [selectedEdge]);
 
   const handleReverseEdge = useCallback(() => {
     if (!selectedEdge) return;
@@ -118,9 +178,19 @@ export const Sidebar: React.FC = () => {
                 <Route className="h-4 w-4" />
                 <span><strong className="block text-xs">Rutas interestelares</strong><span className="font-mono text-[10px] opacity-70">(Johnson)</span></span>
               </button>
-              <button type="button" onClick={() => openAlgorithm('/assignment')} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${location.pathname === '/assignment' ? 'border-[#ffd684]/40 bg-[#ffd684]/10 text-[#ffd684]' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-[#ffd684]/25 hover:text-ink'}`}>
+              <button
+                type="button"
+                onClick={openAssignment}
+                className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${location.pathname === '/assignment' ? 'border-[#ffd684]/40 bg-[#ffd684]/10 text-[#ffd684]' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-[#ffd684]/25 hover:text-ink'}`}
+              >
                 <Crosshair className="h-4 w-4" />
-                <span><strong className="block text-xs">Comando de misión</strong><span className="font-mono text-[10px] opacity-70">(Húngaro)</span></span>
+                <span>
+                  <strong className="block text-xs">Comando de misión</strong>
+                  <span className="font-mono text-[10px] opacity-70">
+                    (Húngaro){' '}
+                    {traducibleDesdePizarra ? '(desde la pizarra)' : ''}
+                  </span>
+                </span>
               </button>
             </div>
           </div>

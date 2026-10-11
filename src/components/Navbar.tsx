@@ -13,12 +13,14 @@ import {
     parseGraphFile,
 } from '../utils/graphFile';
 
+import { extractApiErrorMessage } from '../utils/apiError';
+
 import { AdjListModal } from './AdjListModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { HelpModal } from './HelpModal';
 import { MatrixModal } from './MatrixModal';
 
-const extractErrorMessage = (
+const describeError = (
   err: unknown,
   fallback: string
 ): string => {
@@ -26,33 +28,7 @@ const extractErrorMessage = (
     return err.message;
   }
 
-  if (
-    typeof err === 'object' &&
-    err !== null &&
-    'response' in err
-  ) {
-    const response = (
-      err as {
-        response?: {
-          data?: {
-            detail?: unknown;
-          };
-        };
-      }
-    ).response;
-
-    const detail = response?.data?.detail;
-
-    if (typeof detail === 'string') {
-      return detail;
-    }
-
-    if (detail) {
-      return JSON.stringify(detail);
-    }
-  }
-
-  return fallback;
+  return extractApiErrorMessage(err, fallback);
 };
 
 const Spinner = () => (
@@ -117,7 +93,7 @@ export const Navbar: React.FC = () => {
       setValidationData(response.data);
       openModal();
     } catch (err: unknown) {
-      error(extractErrorMessage(err, 'Error al conectar con FastAPI.'));
+      error(describeError(err, 'Error al conectar con FastAPI.'));
     } finally {
       setFetching(false);
     }
@@ -127,7 +103,7 @@ export const Navbar: React.FC = () => {
 
   const handleShowList = () => openValidationView('list');
 
-  const handleExportJson = () => {
+  const handleExportJson = async () => {
     if (nodes.length === 0) {
       error('El lienzo está vacío, no hay nada que guardar.');
       return;
@@ -135,10 +111,10 @@ export const Navbar: React.FC = () => {
 
     try {
       const payload = buildGraphPayload(nodes, edges);
-      downloadGraphAsJson(payload);
+      await downloadGraphAsJson(payload);
       success('Grafo guardado en JSON correctamente.');
-    } catch {
-      error('No se pudo generar el archivo JSON.');
+    } catch (err: unknown) {
+      error(describeError(err, 'No se pudo generar el archivo JSON.'));
     }
   };
 
@@ -169,7 +145,7 @@ export const Navbar: React.FC = () => {
       loadGraph(flowNodes, flowEdges);
       success('Grafo importado correctamente.');
     } catch (err: unknown) {
-      error(extractErrorMessage(err, 'No se pudo importar el archivo.'));
+      error(describeError(err, 'No se pudo importar el archivo.'));
     } finally {
       setIsImporting(false);
     }

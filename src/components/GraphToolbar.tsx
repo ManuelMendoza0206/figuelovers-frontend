@@ -34,15 +34,15 @@ const ToolButton: React.FC<ToolButtonProps> = ({
         'text-xs font-bold transition-all duration-150',
         'focus:outline-none focus:ring-2 focus:ring-brand/30',
         active
-          ? 'bg-brand text-white shadow-sm'
-          : 'bg-[#132143] text-ink hover:bg-brand-muted hover:text-brand',
+          ? 'bg-brand text-[#07101f] shadow-sm'
+          : 'bg-white/[0.04] text-ink hover:bg-brand/10 hover:text-brand',
       ].join(' ')}
     >
       <span
         className={[
           'flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition',
           active
-            ? 'bg-white/15 text-white'
+            ? 'bg-[#07101f]/15 text-[#07101f]'
             : 'bg-brand-muted text-brand group-hover:bg-brand/15',
         ].join(' ')}
       >
@@ -61,7 +61,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
 }) => {
   return (
     <div
-      className="pointer-events-auto flex items-center gap-1 rounded-xl border border-white/10 bg-[#101b37]/95 p-1.5 shadow-2xl backdrop-blur-xl"
+      className="pointer-events-auto flex items-center gap-1 rounded-xl border border-white/10 bg-[#070d1d]/80 p-1.5 shadow-2xl backdrop-blur-md"
       role="toolbar"
       aria-label="Herramientas del grafo"
     >
@@ -124,7 +124,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
       </ToolButton>
 
       <span
-        className="mx-1 h-6 w-px bg-border"
+        className="mx-1 h-6 w-px bg-white/10"
         aria-hidden="true"
       />
 
@@ -133,7 +133,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
         onClick={onAddNode}
         title="Añadir un nuevo nodo"
         aria-label="Añadir un nuevo nodo"
-        className="group flex h-10 items-center gap-2 rounded-lg bg-[#132143] px-3 text-xs font-bold text-ink transition-all duration-150 hover:bg-brand-muted hover:text-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+        className="group flex h-10 items-center gap-2 rounded-lg bg-white/[0.04] px-3 text-xs font-bold text-ink transition-all duration-150 hover:bg-brand/10 hover:text-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
       >
         <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-muted text-lg font-medium leading-none text-brand transition group-hover:bg-brand/15">
           +

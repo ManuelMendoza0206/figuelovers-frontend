@@ -89,6 +89,23 @@ export const getHandleId = (
   return `${type}-${index}`;
 };
 
+/**
+ * Fase del centelleo, derivada del id del nodo.
+ *
+ * Si todas las estrellas pulsaran a la vez el campo se leeria como un
+ * GIF, no como un cielo. Sin estado ni aleatoriedad en render: la misma
+ * estrella centellea siempre en la misma fase.
+ */
+export const starTwinklePhase = (id: string): number => {
+  let hash = 0;
+
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash * 31 + id.charCodeAt(index)) % 997;
+  }
+
+  return Math.round((hash / 997) * 6000);
+};
+
 const CircularNode: React.FC<
   NodeProps<AppNodeData>
 > = ({
@@ -98,22 +115,39 @@ const CircularNode: React.FC<
 }) => {
   return (
     <div
-      className={[
-        'relative flex h-[76px] w-[76px] items-center justify-center',
-        'cosmic-node rounded-full border-2 bg-[#17264b]',
-        'transition-all duration-150',
-        'select-none',
-
-        selected
-          ? 'border-brand shadow-[0_0_0_5px_rgba(114,230,224,0.14),0_8px_30px_rgba(114,230,224,0.3)]'
-          : 'border-[#a4b9ff] shadow-[0_5px_22px_rgba(0,0,0,0.3)]',
-      ].join(' ')}
+      className="relative flex h-[76px] w-[76px] items-center justify-center select-none"
       aria-label={`Nodo ${data.label}`}
       data-node-id={id}
     >
-
+      {/* Halo: la luz que la estrella derrama sobre el vacio. */}
       <span
-        className="pointer-events-none max-w-[60px] truncate px-1 text-center text-xs font-extrabold leading-tight text-ink"
+        aria-hidden="true"
+        className={[
+          'star-halo pointer-events-none absolute inset-0 rounded-full',
+          'transition-opacity duration-300',
+          selected ? 'opacity-100' : 'opacity-80',
+        ].join(' ')}
+      />
+
+      {/* Nucleo. No lleva transicion: su animacion escribe
+          transform/opacidad y las dos se pelearian con la seleccion. */}
+      <span
+        aria-hidden="true"
+        className="star-core pointer-events-none absolute inset-0 rounded-full"
+        style={{ animationDelay: `${starTwinklePhase(id)}ms` }}
+      />
+
+      {selected && (
+        <span
+          aria-hidden="true"
+          className="star-ring pointer-events-none absolute -inset-[10px] rounded-full"
+        />
+      )}
+
+      {/* La etiqueta sale de la caja de 76px en posicion absoluta: ni el
+          ancho ni los porcentajes de los handles se ven afectados. */}
+      <span
+        className="star-label pointer-events-none absolute left-1/2 top-full mt-1.5 w-max max-w-[104px] -translate-x-1/2 truncate text-center text-[11px] font-bold tracking-[0.01em] text-ink/90"
         title={data.label}
       >
         {data.label}
@@ -177,5 +211,17 @@ const CircularNode: React.FC<
   );
 };
 
-export default CircularNode;
+/**
+ * ReactFlow re-renderiza el grafo completo ante cualquier cambio. Sin
+ * memo, mover un nodo repinta los otros N-1 nodos y sus 48 handles.
+ *
+ * El shallow compare por defecto alcanza: ReactFlow pasa props
+ * escalares (`id`, `selected`) y `data` mantiene identidad estable
+ * durante un drag porque `applyNodeChanges` no toca `data`.
+ */
+const MemoizedCircularNode = React.memo(CircularNode);
+
+MemoizedCircularNode.displayName = 'CircularNode';
+
+export default MemoizedCircularNode;
 export { CircularNode };

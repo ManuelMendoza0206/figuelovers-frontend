@@ -1,21 +1,18 @@
-import { MarkerType } from 'reactflow';
-import type { CSSProperties } from 'react';
-
-export const BRAND_COLOR = '#05A8AA';
-export const INK_COLOR = '#242F40';
-
-export const EDGE_STROKE_WIDTH = 2.5;
-export const EDGE_Z_INDEX = 10;
-
-export const createEdgeMarker = (): { type: MarkerType } => ({
-  type: MarkerType.ArrowClosed,
-});
-
-export const createEdgeStyle = (
-  overrides: CSSProperties = {}
-): CSSProperties => ({
-  stroke: BRAND_COLOR,
-  strokeWidth: EDGE_STROKE_WIDTH,
-  zIndex: EDGE_Z_INDEX,
-  ...overrides,
-});
+/**
+ * Re-export de la factorizacion de aristas.
+ *
+ * Antes este archivo definiia las constantes de color y estilo, y toda
+ * la logica de aristas se acumulo en el store. Ahora vive en
+ * `edgeFactory.ts`, que ademas es testeable sin montar React. Este
+ * modulo queda como fachada para no romper los imports existentes.
+ */
+export {
+  BEAM_COLOR,
+  BEAM_OPACITY,
+  BEAM_OPACITY_DIMMED,
+  BRAND_COLOR,
+  EDGE_STROKE_WIDTH,
+  EDGE_Z_INDEX,
+  createEdgeMarker,
+  createEdgeStyle,
+} from './edgeFactory';

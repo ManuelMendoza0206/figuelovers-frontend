@@ -54,7 +54,7 @@ export const EdgePropsForm: React.FC<EdgePropsFormProps> = ({
   };
 
   return (
-    <section className="animate-in fade-in slide-in-from-right-2 duration-200">
+    <section className="animate-in fade-in slide-in-from-right-2">
       <SectionHeader icon={<EdgeIcon />} label="Arista" title="Editar conexión" />
 
       <div className="mb-5 rounded-xl border border-brand/20 bg-brand-muted px-4 py-3">

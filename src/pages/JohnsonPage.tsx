@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { BackButton } from '../components/BackButton';
 import { Sidebar } from '../components/Sidebar';
 import { GraphServiceAPI } from '../services/api';
 import { useGraphStore } from '../store/useGraphStore';
 import type { JohnsonResultData } from '../types/graph';
+import { extractApiErrorMessage } from '../utils/apiError';
 import { buildGraphPayload } from '../utils/graphFile';
 
 const JohnsonPage: React.FC = () => {
@@ -12,10 +13,11 @@ const JohnsonPage: React.FC = () => {
   const location = useLocation();
   const returnTo = new URLSearchParams(location.search).get('from') ?? '/editor';
   const [result, setResult] = useState<JohnsonResultData | null>(null);
+  const [resultGraphSignature, setResultGraphSignature] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [source, setSource] = useState<string>('');
-  const [target, setTarget] = useState<string>('');
+  const [sourceOverride, setSourceOverride] = useState<string>('');
+  const [targetOverride, setTargetOverride] = useState<string>('');
   const [renames, setRenames] = useState<Record<string, string>>({});
 
   const nodeList = useMemo(() => nodes.map((node) => node.id), [nodes]);
@@ -25,15 +27,64 @@ const JohnsonPage: React.FC = () => {
     return node?.data?.label?.trim() || nodeId;
   };
 
-  useEffect(() => {
-    const nextRenames = Object.fromEntries(
-      nodes.map((node) => [node.id, node.data?.label?.trim() || node.id])
-    );
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRenames(nextRenames);
-    if (nodeList.length > 0 && !source) setSource(nodeList[0]);
-    if (nodeList.length > 1 && !target) setTarget(nodeList[1]);
-  }, [nodes, nodeList, source, target]);
+  /**
+   * Firma del grafo tal como lo recibio Johnson. Solo importa la
+   * topologia y los pesos: renombrar un nodo no cambia las distancias.
+   */
+  const graphSignature = useMemo(
+    () =>
+      JSON.stringify({
+        nodes: nodes.map((node) => node.id),
+        edges: edges.map((edge) => [
+          edge.source,
+          edge.target,
+          edge.data?.weight ?? null,
+          edge.data?.is_directed ?? null,
+        ]),
+      }),
+    [nodes, edges]
+  );
+
+  /**
+   * Si editas el grafo con un resultado en pantalla, la tabla de
+   * distancias y la ruta mostrada quedan obsoletas. Con esta firma el
+   * resultado se oculta solo en vez de depender de que cada mutacion
+   * se acuerde de limpiarlo.
+   */
+  const freshResult =
+    result !== null && resultGraphSignature === graphSignature
+      ? result
+      : null;
+
+  /**
+   * Origen/destino: guardamos solo lo que el usuario eligio. El default
+   * se deriva de la lista de nodos, asi que no hace falta un efecto que
+   * lo sincronice. De paso, si borras el nodo que habias elegido, el
+   * override deja de ser valido y vuelve al primer nodo disponible en
+   * lugar de dejar el select apuntando a algo inexistente.
+   */
+  const source =
+    sourceOverride && nodeList.includes(sourceOverride)
+      ? sourceOverride
+      : (nodeList[0] ?? '');
+  const target =
+    targetOverride && nodeList.includes(targetOverride)
+      ? targetOverride
+      : (nodeList[1] ?? nodeList[0] ?? '');
+
+  /**
+   * `renames` NO es un espejo del store: es solo lo que el usuario
+   * todavia no confirmo con blur. Lo que nunca se toco se lee del
+   * store. Asi no hace falta un useEffect que resincronice y que de y
+   * paso borraba lo que el usuario estaba escribiendo.
+   */
+  const renameValue = (nodeId: string): string => {
+    const override = renames[nodeId];
+    if (override !== undefined) return override;
+
+    const node = nodes.find((current) => current.id === nodeId);
+    return node?.data?.label?.trim() || nodeId;
+  };
 
   const hasUnnamedNodes = nodes.some(
     (node) => !node.data?.label || node.data.label.trim() === '' || node.data.label === node.id
@@ -58,20 +109,27 @@ const JohnsonPage: React.FC = () => {
     try {
       const payload = buildGraphPayload(nodes, edges);
       const response = await GraphServiceAPI.runJohnson(payload);
+      setResultGraphSignature(graphSignature);
       setResult(response);
     } catch (err: unknown) {
-      const message =
-        typeof err === 'object' && err !== null && 'response' in err
-          ? String((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'No se pudo calcular Johnson.')
-          : 'No se pudo calcular Johnson.';
+      // Mismo util que el resto de la app: antes esto era una tercera
+      // variante del parseo de errores, que solo miraba `.message`.
+      const message = extractApiErrorMessage(
+        err,
+        'No se pudo calcular Johnson.'
+      );
       setErrorMessage(message);
       setResult(null);
+      setResultGraphSignature(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedPath = result && source && target ? result.paths?.[source]?.[target] ?? [] : [];
+  const selectedPath =
+    freshResult && source && target
+      ? freshResult.paths?.[source]?.[target] ?? []
+      : [];
 
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden text-ink">
@@ -108,9 +166,9 @@ const JohnsonPage: React.FC = () => {
                 <label key={node.id} className="text-xs font-medium text-amber-800">
                   {node.id}
                   <input
-                    value={renames[node.id] ?? node.id}
+                    value={renameValue(node.id)}
                     onChange={(e) => setRenames((current) => ({ ...current, [node.id]: e.target.value }))}
-                    onBlur={() => handleRenameNode(node.id, renames[node.id] ?? node.id)}
+                    onBlur={() => handleRenameNode(node.id, renameValue(node.id))}
                     className="mt-1 w-full rounded-lg border border-[#ffd684]/30 bg-[#211d24] p-2 text-sm text-ink"
                   />
                 </label>
@@ -123,15 +181,15 @@ const JohnsonPage: React.FC = () => {
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{errorMessage}</div>
         )}
 
-        {result && result.has_negative_cycle && (
-          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">{result.message ?? 'El grafo contiene un ciclo de peso negativo.'}</div>
+        {freshResult && freshResult.has_negative_cycle && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">{freshResult.message ?? 'El grafo contiene un ciclo de peso negativo.'}</div>
         )}
 
         {nodeList.length > 0 && (
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <label className="text-sm text-ink-muted">
               Origen
-              <select value={source} onChange={(e) => setSource(e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink">
+              <select value={source} onChange={(e) => setSourceOverride(e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink">
                 {nodeList.map((nodeId) => (
                   <option key={nodeId} value={nodeId}>{displayName(nodeId)}</option>
                 ))}
@@ -140,7 +198,7 @@ const JohnsonPage: React.FC = () => {
 
             <label className="text-sm text-ink-muted">
               Destino
-              <select value={target} onChange={(e) => setTarget(e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink">
+              <select value={target} onChange={(e) => setTargetOverride(e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink">
                 {nodeList.map((nodeId) => (
                   <option key={nodeId} value={nodeId}>{displayName(nodeId)}</option>
                 ))}
@@ -150,7 +208,7 @@ const JohnsonPage: React.FC = () => {
         )}
       </div>
 
-      {result && !result.has_negative_cycle && (
+      {freshResult && !freshResult.has_negative_cycle && (
         <div className="grid gap-6 lg:grid-cols-[1.6fr_0.9fr]">
           <div className="glass-panel overflow-hidden rounded-2xl">
             <div className="overflow-auto">
@@ -168,7 +226,7 @@ const JohnsonPage: React.FC = () => {
                     <tr key={sourceId}>
                       <td className="border-b border-white/10 px-3 py-2 font-semibold text-ink">{displayName(sourceId)}</td>
                       {nodeList.map((targetId) => {
-                        const distance = result.distances[sourceId]?.[targetId];
+                        const distance = freshResult.distances[sourceId]?.[targetId];
                         return (
                           <td key={`${sourceId}-${targetId}`} className={`border-b border-white/10 px-3 py-2 font-mono ${sourceId === source && targetId === target ? 'bg-brand/15 font-bold text-brand' : 'text-ink-muted'}`}>
                             {distance === null || distance === undefined ? '∞' : distance}

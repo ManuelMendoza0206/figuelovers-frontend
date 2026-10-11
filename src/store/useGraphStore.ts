@@ -12,9 +12,31 @@ import type {
   OnConnect,
 } from 'reactflow';
 
-import { createEdgeMarker, createEdgeStyle } from '../lib/graphEdge';
+import {
+  buildEdge,
+  buildReversedEdge,
+  createEdgeMarker,
+  createEdgeStyle,
+  createNodeId,
+  DEFAULT_WEIGHT,
+  hasConflictingEdge,
+  hasReverseConflict,
+} from '../lib/edgeFactory';
+import { computeNextFolio, ensureFolios } from '../lib/folio';
 
 import type { GraphValidationData, AppNode, AppEdge } from '../types/graph';
+
+/**
+ * Estado del lienzo.
+ *
+ * Este store solo coordina: cuando cambia el estado, re-resuelve la
+ * seleccion y limpia `validationData` porque la validacion del backend
+ * ya no corresponde al grafo actual.
+ *
+ * La logica que NO es coordinacion (folios, construccion/inversion de
+ * aristas, deteccion de duplicados) vive en `lib/folio.ts` y
+ * `lib/edgeFactory.ts`, ambas puras y testeadas por separado.
+ */
 
 interface GraphState {
   nodes: AppNode[];
@@ -53,70 +75,16 @@ interface GraphState {
   clearGraph: () => void;
 }
 
-
-const convertHandleDirection = (
-  handleId: string | null | undefined,
-  toType: 'source' | 'target'
-): string | undefined => {
-  if (!handleId) {
-    return undefined;
+/** Re-resuelve la seleccion tras un cambio en la coleccion. */
+const keepSelection = <T extends { id: string }>(
+  selected: T | null,
+  updated: T[]
+): T | null => {
+  if (selected === null) {
+    return null;
   }
 
-  if (handleId.startsWith('source-')) {
-    return handleId.replace(
-      'source-',
-      `${toType}-`
-    );
-  }
-
-  if (handleId.startsWith('target-')) {
-    return handleId.replace(
-      'target-',
-      `${toType}-`
-    );
-  }
-
-  return handleId;
-};
-
-// ==========================================
-// Calcula el siguiente folio disponible a partir
-// de una lista de nodos (usado al importar un grafo,
-// por si ya traen folios asignados).
-// ==========================================
-const computeNextFolio = (nodes: AppNode[]): number => {
-  const maxFolio = nodes.reduce((max, node) => {
-    const folio = node.data?.folio;
-    return typeof folio === 'number' && folio > max
-      ? folio
-      : max;
-  }, 0);
-
-  return maxFolio + 1;
-};
-
-const ensureFolios = (
-  nodes: AppNode[],
-  startFolio: number
-): AppNode[] => {
-  let nextFolio = startFolio;
-
-  return nodes.map((node) => {
-    if (typeof node.data?.folio === 'number') {
-      return node;
-    }
-
-    const nodeWithFolio: AppNode = {
-      ...node,
-      data: {
-        ...node.data,
-        folio: nextFolio,
-      },
-    };
-
-    nextFolio += 1;
-    return nodeWithFolio;
-  });
+  return updated.find((item) => item.id === selected.id) ?? null;
 };
 
 export const useGraphStore = create<GraphState>((set) => ({
@@ -134,17 +102,10 @@ export const useGraphStore = create<GraphState>((set) => ({
         state.nodes
       ) as AppNode[];
 
-      const selectedNode =
-        state.selectedNode !== null
-          ? updatedNodes.find(
-              (node) =>
-                node.id === state.selectedNode?.id
-            ) ?? null
-          : null;
-
       return {
         nodes: updatedNodes,
-        selectedNode,
+        selectedNode: keepSelection(state.selectedNode, updatedNodes),
+        // El grafo cambio => la validacion cacheada ya no aplica.
         validationData: null,
       };
     });
@@ -157,98 +118,35 @@ export const useGraphStore = create<GraphState>((set) => ({
         state.edges
       ) as AppEdge[];
 
-      const selectedEdge =
-        state.selectedEdge !== null
-          ? updatedEdges.find(
-              (edge) =>
-                edge.id === state.selectedEdge?.id
-            ) ?? null
-          : null;
-
       return {
         edges: updatedEdges,
-        selectedEdge,
+        selectedEdge: keepSelection(state.selectedEdge, updatedEdges),
         validationData: null,
       };
     });
   },
 
   onConnect: (connection: Connection) => {
-    if (!connection.source || !connection.target) {
+    const { source, target } = connection;
+
+    if (!source || !target) {
       return;
     }
 
-    const source = connection.source;
-    const target = connection.target;
-
     set((state) => {
-      const duplicateExists = state.edges.some(
-        (edge) => {
-          const sameDirection =
-            edge.source === source &&
-            edge.target === target;
-
-          if (sameDirection) {
-            return true;
-          }
-
-          const isLegacyUndirected =
-            edge.data?.is_directed === false &&
-            (
-              (
-                edge.source === source &&
-                edge.target === target
-              ) ||
-              (
-                edge.source === target &&
-                edge.target === source
-              )
-            );
-
-          return isLegacyUndirected;
-        }
-      );
-
-      if (duplicateExists) {
+      if (hasConflictingEdge(state.edges, source, target)) {
         return state;
       }
 
-      const newEdge: AppEdge = {
-        id: `e-${source}-${target}-${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 8)}`,
-
-        type: 'straight',
-
+      const newEdge = buildEdge({
         source,
         target,
-
-        sourceHandle:
-          connection.sourceHandle ?? undefined,
-
-        targetHandle:
-          connection.targetHandle ?? undefined,
-
-        label: '1',
-
-        data: {
-          weight: 1,
-          is_directed: true,
-        },
-
-        markerEnd: createEdgeMarker(),
-
-        style: createEdgeStyle(),
-      };
-
-      const nextEdges = addEdge(
-        newEdge,
-        state.edges
-      ) as AppEdge[];
+        sourceHandle: connection.sourceHandle ?? undefined,
+        targetHandle: connection.targetHandle ?? undefined,
+      });
 
       return {
-        ...state,
-        edges: nextEdges,
+        edges: addEdge(newEdge, state.edges) as AppEdge[],
         validationData: null,
         selectedEdge: newEdge,
         selectedNode: null,
@@ -257,9 +155,7 @@ export const useGraphStore = create<GraphState>((set) => ({
   },
 
   addNode: (position) => {
-    const newId = `node-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
+    const newId = createNodeId();
 
     set((state) => {
       const newNode: AppNode = {
@@ -291,35 +187,20 @@ export const useGraphStore = create<GraphState>((set) => ({
         return state;
       }
 
-      const updatedNodes = state.nodes.filter(
-        (node) => node.id !== nodeId
-      );
-
-      const updatedEdges = state.edges.filter(
-        (edge) =>
-          edge.source !== nodeId &&
-          edge.target !== nodeId
-      );
-
-      const selectedNode =
-        state.selectedNode?.id === nodeId
-          ? null
-          : state.selectedNode;
-
-      const selectedEdge =
-        state.selectedEdge &&
-        (
-          state.selectedEdge.source === nodeId ||
-          state.selectedEdge.target === nodeId
-        )
-          ? null
-          : state.selectedEdge;
-
       return {
-        nodes: updatedNodes,
-        edges: updatedEdges,
-        selectedNode,
-        selectedEdge,
+        nodes: state.nodes.filter((node) => node.id !== nodeId),
+        // Sin esto quedan aristas apuntando a un nodo inexistente.
+        edges: state.edges.filter(
+          (edge) => edge.source !== nodeId && edge.target !== nodeId
+        ),
+        selectedNode:
+          state.selectedNode?.id === nodeId ? null : state.selectedNode,
+        selectedEdge:
+          state.selectedEdge &&
+          (state.selectedEdge.source === nodeId ||
+            state.selectedEdge.target === nodeId)
+            ? null
+            : state.selectedEdge,
         validationData: null,
       };
     });
@@ -339,14 +220,10 @@ export const useGraphStore = create<GraphState>((set) => ({
         (edge) => edge.id !== edgeId
       );
 
-      const selectedEdge =
-        state.selectedEdge?.id === edgeId
-          ? null
-          : state.selectedEdge;
-
       return {
         edges: updatedEdges,
-        selectedEdge,
+        selectedEdge:
+          state.selectedEdge?.id === edgeId ? null : state.selectedEdge,
         validationData: null,
       };
     });
@@ -355,186 +232,99 @@ export const useGraphStore = create<GraphState>((set) => ({
   reverseEdge: (edgeId) => {
     set((state) => {
       const edge = state.edges.find(
-        (currentEdge) =>
-          currentEdge.id === edgeId
+        (currentEdge) => currentEdge.id === edgeId
       );
 
       if (!edge) {
         return state;
       }
+
+      // Invertir una no dirigida no significa nada: no tiene orientation.
       if (!edge.data?.is_directed) {
         return state;
       }
 
-      const newSource = edge.target;
-      const newTarget = edge.source;
-      const oppositeExists = state.edges.some(
-        (otherEdge) =>
-          otherEdge.id !== edge.id &&
-          otherEdge.source === newSource &&
-          otherEdge.target === newTarget
-      );
-
-      if (oppositeExists) {
+      if (
+        hasReverseConflict(state.edges, edgeId, edge.target, edge.source)
+      ) {
         return state;
       }
 
-      const newSourceHandle =
-        convertHandleDirection(
-          edge.targetHandle,
-          'source'
-        );
-
-      const newTargetHandle =
-        convertHandleDirection(
-          edge.sourceHandle,
-          'target'
-        );
-
-      const reversedEdge: AppEdge = {
-        ...edge,
-
-        type: 'straight',
-
-        source: newSource,
-        target: newTarget,
-
-        sourceHandle: newSourceHandle,
-        targetHandle: newTargetHandle,
-
-        data: {
-          ...edge.data,
-          is_directed: true,
-        },
-
-        markerEnd: createEdgeMarker(),
-
-        style: createEdgeStyle(),
-      };
-
-      const updatedEdges = state.edges.map(
-        (currentEdge) =>
-          currentEdge.id === edgeId
-            ? reversedEdge
-            : currentEdge
-      );
+      const reversedEdge = buildReversedEdge(edge);
 
       return {
-        edges: updatedEdges,
+        edges: state.edges.map((currentEdge) =>
+          currentEdge.id === edgeId ? reversedEdge : currentEdge
+        ),
         selectedEdge: reversedEdge,
         validationData: null,
       };
     });
   },
 
-
   updateNodeData: (nodeId, label) => {
     set((state) => {
-      const updatedNodes = state.nodes.map(
-        (node) => {
-          if (node.id !== nodeId) {
-            return node;
-          }
-
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              label,
-            },
-          };
-        }
+      const updatedNodes = state.nodes.map((node) =>
+        node.id === nodeId
+          ? { ...node, data: { ...node.data, label } }
+          : node
       );
-
-      const updatedSelectedNode =
-        state.selectedNode?.id === nodeId
-          ? updatedNodes.find(
-              (node) => node.id === nodeId
-            ) ?? null
-          : state.selectedNode;
 
       return {
         nodes: updatedNodes,
-        selectedNode: updatedSelectedNode,
+        selectedNode: keepSelection(state.selectedNode, updatedNodes),
         validationData: null,
       };
     });
   },
 
-  updateEdgeData: (
-    edgeId,
-    weight,
-    isDirected
-  ) => {
+  updateEdgeData: (edgeId, weight, isDirected) => {
     set((state) => {
-      const updatedEdges = state.edges.map(
-        (edge) => {
-          if (edge.id !== edgeId) {
-            return edge;
-          }
-
-          const updatedEdge: AppEdge = {
-            ...edge,
-
-            type: 'straight',
-
-            label: weight.toString(),
-
-            data: {
-              ...edge.data,
-              weight,
-              is_directed: isDirected,
-            },
-
-            markerEnd: isDirected
-              ? createEdgeMarker()
-              : undefined,
-
-            style: createEdgeStyle(),
-          };
-
-          return updatedEdge;
+      const updatedEdges = state.edges.map((edge) => {
+        if (edge.id !== edgeId) {
+          return edge;
         }
-      );
 
-      const updatedSelectedEdge =
-        state.selectedEdge?.id === edgeId
-          ? updatedEdges.find(
-              (edge) => edge.id === edgeId
-            ) ?? null
-          : state.selectedEdge;
+        const nextWeight = Number.isFinite(weight) ? weight : DEFAULT_WEIGHT;
+
+        return {
+          ...edge,
+          type: 'straight' as const,
+          label: nextWeight.toString(),
+          data: {
+            ...edge.data,
+            weight: nextWeight,
+            is_directed: isDirected,
+          },
+          markerEnd: isDirected ? createEdgeMarker() : undefined,
+          style: createEdgeStyle(),
+        };
+      });
 
       return {
         edges: updatedEdges,
-        selectedEdge: updatedSelectedEdge,
+        selectedEdge: keepSelection(state.selectedEdge, updatedEdges),
         validationData: null,
       };
     });
   },
 
   setValidationData: (data) => {
-    set({
-      validationData: data,
-    });
+    set({ validationData: data });
   },
+
   setSelectedElement: (node, edge) => {
-    set({
-      selectedNode: node,
-      selectedEdge: edge,
-    });
+    set({ selectedNode: node, selectedEdge: edge });
   },
 
   loadGraph: (nodes, edges) => {
     set(() => {
-      const initialNextFolio = computeNextFolio(nodes);
-      const nodesWithFolio = ensureFolios(
-        nodes,
-        initialNextFolio
-      );
+      const nodesWithFolio = ensureFolios(nodes, computeNextFolio(nodes));
 
       return {
         nodes: nodesWithFolio,
         edges,
+        // Recalculado: completar folios consumio numeros.
         nextFolio: computeNextFolio(nodesWithFolio),
         validationData: null,
         selectedNode: null,

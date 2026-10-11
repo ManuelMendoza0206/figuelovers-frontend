@@ -29,8 +29,8 @@ const ProjectEditorPage: React.FC = () => {
   }, [edges, nodes, projectId]);
 
   return (
-    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-[#080f22]">
-      <main className="relative min-w-0 flex-1 overflow-hidden bg-[#0a142b]" aria-label="Constelaciones, editor de grafos">
+    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-void-deep">
+      <main className="relative min-w-0 flex-1 overflow-hidden bg-void" aria-label="Constelaciones, editor de grafos">
         <div className="absolute bottom-5 right-24 z-20"><BackButton to="/dashboard" /></div>
         <div className="pointer-events-none absolute left-5 top-5 z-10">
           <p className="eyebrow text-[10px]">Nivel 04 · constelaciones</p>

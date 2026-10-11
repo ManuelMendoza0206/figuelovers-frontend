@@ -99,7 +99,7 @@ export const HelpModal: React.FC = () => {
           ref={popoverRef}
           role="dialog"
           aria-label="Ayuda de Aristografos"
-          className="absolute right-0 top-[calc(100%+8px)] z-50 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+          className="absolute right-0 top-[calc(100%+8px)] z-50 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl animate-in fade-in zoom-in-95"
         >
           <div className="border-b border-white/10 bg-[#0b1328] px-5 py-4">
             <div className="flex items-start gap-3">

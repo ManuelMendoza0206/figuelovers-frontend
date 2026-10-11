@@ -80,7 +80,7 @@ export const Modal: React.FC<ModalProps> = ({
         ref={modalRef}
         tabIndex={-1}
         className={[
-          'flex max-h-[85vh] w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#101a31] shadow-2xl animate-in fade-in zoom-in-95 duration-200',
+          'flex max-h-[85vh] w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#101a31] shadow-2xl animate-in fade-in zoom-in-95',
           widthMap[maxWidth],
           className,
         ].join(' ')}

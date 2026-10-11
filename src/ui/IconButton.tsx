@@ -10,7 +10,7 @@ interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses = {
-  primary: 'bg-brand text-white hover:bg-brand-hover',
+  primary: 'bg-brand text-[#07101f] hover:bg-brand-hover',
   secondary: 'bg-surface text-ink border border-border hover:bg-surface-muted hover:border-border-muted',
   ghost: 'bg-transparent text-ink hover:bg-surface-muted',
   danger: 'bg-error text-white hover:bg-rose-600',

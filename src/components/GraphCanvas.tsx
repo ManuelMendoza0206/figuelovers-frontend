@@ -26,7 +26,13 @@ import type {
 
 import CircularNode from './CircularNode';
 
-import { BRAND_COLOR, createEdgeStyle, EDGE_STROKE_WIDTH } from '../lib/graphEdge';
+import {
+  BEAM_OPACITY,
+  BEAM_OPACITY_DIMMED,
+  BRAND_COLOR,
+  createEdgeStyle,
+  EDGE_STROKE_WIDTH,
+} from '../lib/graphEdge';
 import {
     getBidirectionalCurveInfo,
     getDynamicEdgeHandles,
@@ -36,10 +42,15 @@ import {
     NO_SELF_LOOP,
 } from '../lib/graphGeometry';
 import type { GraphTool } from '../types/graph';
-import { WeightedStraightEdge } from './edges/WeightedStraightEdge';
+// Default export: es la version memoizada con comparator explicito.
+import WeightedStraightEdge from './edges/WeightedStraightEdge';
 import { GraphHud } from './GraphHud';
 import GraphToolbar from './GraphToolbar';
 
+// Constantes de modulo a proposito. React Flow compara la REFERENCIA de
+// nodeTypes/edgeTypes entre renders (error 002), asi que definirlas
+// aca es lo que evita el warning. No envolverlas en useMemo: serian una
+// indireccion sin efecto que ademas se rompe con el HMR de Vite.
 const nodeTypes = {
   circularGraphNode: CircularNode,
 };
@@ -56,15 +67,14 @@ const CanvasContent: React.FC = () => {
   const {
     nodes,
     edges,
+    selectedNode,
+    selectedEdge,
     onNodesChange,
     onEdgesChange,
     onConnect,
     addNode,
     setSelectedElement,
   } = useGraphStore();
-
-  const memoizedNodeTypes = useMemo(() => nodeTypes, []);
-  const memoizedEdgeTypes = useMemo(() => edgeTypes, []);
 
   const nodeMap = useMemo(() => {
     const map: Map<string, AppNode> = new Map();
@@ -89,6 +99,17 @@ const CanvasContent: React.FC = () => {
         const curveInfo = isSelfLoopEdge ? NO_CURVE : getBidirectionalCurveInfo(edge, edges, nodeMap);
         const selfLoopInfo = isSelfLoopEdge ? getSelfLoopInfo(edge, nodeMap) : NO_SELF_LOOP;
 
+        /**
+         * Con una seleccion activa, solo queda encendida la constelacion
+         * que la toca. Sin seleccion, todas. Es lo que hace legible la
+         * relacion sin cambiar la logica del grafo.
+         */
+        const touchesSelection = selectedNode
+          ? edge.source === selectedNode.id || edge.target === selectedNode.id
+          : selectedEdge?.id === edge.id;
+
+        const isLit = !selectedNode && !selectedEdge ? true : touchesSelection;
+
         return {
           ...edge,
           type: 'weightedStraightEdge',
@@ -103,14 +124,20 @@ const CanvasContent: React.FC = () => {
             isSelfLoop: selfLoopInfo.isSelfLoop,
             loopCenterX: selfLoopInfo.centerX,
             loopCenterY: selfLoopInfo.centerY,
+            isLit,
           },
           zIndex: edge.selected ? 40 : 20,
           style: createEdgeStyle({
-            strokeWidth: edge.selected ? 3 : 2.5,
+            strokeWidth: edge.selected ? 2.4 : EDGE_STROKE_WIDTH,
+            strokeOpacity: isLit
+              ? edge.selected
+                ? 1
+                : BEAM_OPACITY
+              : BEAM_OPACITY_DIMMED,
           }),
         };
       }),
-    [edges, nodeMap]
+    [edges, nodeMap, selectedNode, selectedEdge]
   );
 
   const handleNodeClick: NodeMouseHandler = useCallback(
@@ -176,7 +203,14 @@ const CanvasContent: React.FC = () => {
   const panOnDrag = activeTool === 'interact';
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-surface-muted">
+    <div className="space-field relative h-full w-full overflow-hidden">
+      {/* El vacio. Tres capas, todas detras del grafo y todas
+          transparentes al puntero: el lienzo se tiene que poder usar
+          igual que antes. */}
+      <div aria-hidden="true" className="field-nebula field-nebula-a" />
+      <div aria-hidden="true" className="field-nebula field-nebula-b" />
+      <div aria-hidden="true" className="field-stars" />
+
       <div className="absolute left-4 top-4 z-20">
         <GraphToolbar
           activeTool={activeTool}
@@ -190,8 +224,8 @@ const CanvasContent: React.FC = () => {
       <ReactFlow
         nodes={displayNodes}
         edges={displayEdges}
-        nodeTypes={memoizedNodeTypes}
-        edgeTypes={memoizedEdgeTypes}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -216,23 +250,35 @@ const CanvasContent: React.FC = () => {
           zIndex: 20,
           style: createEdgeStyle({ zIndex: undefined }),
         }}
-        connectionLineStyle={{ stroke: BRAND_COLOR, strokeWidth: EDGE_STROKE_WIDTH }}
+        connectionLineStyle={{ stroke: BRAND_COLOR, strokeWidth: 2 }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#344568" />
+        {/* Rejilla de orientacion, casi invisible. Sin ella no hay
+            ninguna referencia espacial al arrastrar el lienzo vacio; el
+            campo de estrellas no sirve para eso porque no se mueve con
+            el grafo. */}
+        <Background
+          variant={BackgroundVariant.Lines}
+          gap={96}
+          lineWidth={1}
+          color="#0c1330"
+        />
+
         <Controls
           position="bottom-right"
           showInteractive={false}
-          className="!m-4 !overflow-hidden !rounded-xl !border !border-border !bg-surface !shadow-lg"
+          className="!m-4 !overflow-hidden !rounded-xl !border !border-white/10 !bg-[#070d1d]/80 !shadow-2xl !backdrop-blur-md"
         />
+
         <MiniMap
           position="top-right"
           nodeColor={BRAND_COLOR}
-          maskColor="rgba(7, 13, 29, 0.78)"
+          nodeBorderRadius={99}
+          maskColor="rgba(3, 6, 15, 0.82)"
           nodeStrokeWidth={2}
           pannable
           zoomable
-          className="!m-4 !overflow-hidden !rounded-xl !border !border-border !bg-surface !shadow-lg"
+          className="!m-4 !overflow-hidden !rounded-xl !border !border-white/10 !bg-[#070d1d]/80 !shadow-2xl !backdrop-blur-md"
         />
       </ReactFlow>
     </div>

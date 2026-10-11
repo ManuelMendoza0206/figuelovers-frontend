@@ -1,7 +1,8 @@
+import React from 'react';
 import type { EdgeProps } from 'reactflow';
 import { BaseEdge, EdgeLabelRenderer, getStraightPath } from 'reactflow';
 
-import { BRAND_COLOR } from '../../lib/graphEdge';
+import { BEAM_COLOR, BRAND_COLOR } from '../../lib/graphEdge';
 import {
     CURVE_CONTROL_POINT_OFFSET,
     CURVE_LABEL_OFFSET,
@@ -10,15 +11,22 @@ import {
     SELF_LOOP_LATERAL_SPREAD,
 } from '../../lib/graphGeometry';
 
-interface WeightedEdgeData {
-  isCurved?: boolean;
-  normalX?: number;
-  normalY?: number;
-  curveSign?: number;
-  isSelfLoop?: boolean;
-  loopCenterX?: number;
-  loopCenterY?: number;
-}
+import type { WeightedEdgeData } from './edgeEquality';
+import { areEdgePropsEqual } from './edgeEquality';
+
+/**
+ * Fase estable de una arista, derivada de su id. Sin estado ni
+ * aleatoriedad en render: la misma arista centellea siempre igual.
+ */
+const hashEdgePhase = (id: string): number => {
+  let hash = 0;
+
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash * 31 + id.charCodeAt(index)) % 9973;
+  }
+
+  return hash;
+};
 
 export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
   const {
@@ -102,9 +110,61 @@ export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
     ? midY + normalY * curveSign * CURVE_LABEL_OFFSET
     : straightLabelY;
 
+  /**
+   * ¿La constelacion esta encendida? Si hay una seleccion, solo lo estan
+   * las aristas que la tocan: el resto se apaga para que se lea la
+   * relacion. Sin seleccion, todas encendidas.
+   */
+  const isLit = data?.isLit ?? true;
+
+  const isDirected = markerEnd !== undefined && markerEnd !== null;
+
+  const showPulse = isLit && (isDirected || selected);
+
+  const haloWidth = selected ? 17 : 11;
+  const haloOpacity = isLit ? (selected ? 0.26 : 0.13) : 0.045;
+
+  /* Cada haz viaja a su ritmo y entra en distinta fase, para que el
+     campo de pulsos no se lea como un metronomo. */
+  const phase = hashEdgePhase(id);
+  const beamDuration = 2400 + (phase % 900);
+  const beamDelay = -(phase % beamDuration);
+
   return (
     <>
+      {/* Halo del haz: la luz que se derrama sobre el vacio. Es el
+          mismo path mas grueso y mas tenue; el hilo de luz va encima. */}
+      <path
+        className="pointer-events-none"
+        d={edgePath}
+        fill="none"
+        stroke={BEAM_COLOR}
+        strokeWidth={haloWidth}
+        strokeOpacity={haloOpacity}
+        strokeLinecap="round"
+        aria-hidden="true"
+      />
+
       <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} markerStart={markerStart} style={style} />
+
+      {/* Punto de luz que viaja del origen al destino. Solo en aristas
+          dirigidas o en la seleccionada, y solo con la constelacion
+          encendida: un pulso en una arista atenuada no significaria nada. */}
+      {showPulse && (
+        <circle
+          className="beam-pulse"
+          r={selected ? 3.1 : 2.5}
+          fill="#d8fffb"
+          aria-hidden="true"
+          style={
+            {
+              offsetPath: `path("${edgePath}")`,
+              '--beam-duration': `${beamDuration}ms`,
+              '--beam-delay': `${beamDelay}ms`,
+            } as React.CSSProperties
+          }
+        />
+      )}
 
       {label !== undefined && label !== null && (
         <EdgeLabelRenderer>
@@ -115,20 +175,24 @@ export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
               nodrag
               nopan
               select-none
-              rounded-md
+              rounded-full
               border
-              bg-[#101b37]
+              bg-[#060c1c]/95
               px-2
               py-0.5
-              text-xs
+              text-[11px]
               font-semibold
-              shadow-sm
+              tabular-nums
+              backdrop-blur-sm
             "
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              color: selected ? BRAND_COLOR : '#dbe7ff',
-              borderColor: selected ? BRAND_COLOR : '#344568',
+              color: selected ? BRAND_COLOR : '#c8d6f2',
+              borderColor: selected ? BRAND_COLOR : 'rgb(148 170 214 / 0.28)',
+              boxShadow: selected
+                ? '0 0 16px rgb(114 230 224 / 0.35)'
+                : '0 6px 16px rgb(0 0 0 / 0.5)',
               zIndex: selected ? 50 : 30,
             }}
           >
@@ -139,3 +203,12 @@ export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
     </>
   );
 }
+
+const MemoizedWeightedStraightEdge = React.memo(
+  WeightedStraightEdge,
+  areEdgePropsEqual
+);
+
+MemoizedWeightedStraightEdge.displayName = 'WeightedStraightEdge';
+
+export default MemoizedWeightedStraightEdge;

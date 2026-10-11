@@ -16,8 +16,18 @@ import type {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const API_V1_PREFIX = '/api/v1';
 
+/**
+ * Tope de espera por request.
+ *
+ * Sin esto, si el backend acepta la conexion pero no responde (se
+ * cuelga, se reinicia, un proxy se queda colgado), axios espera
+ * indefinidamente y el usuario ve un spinner que nunca termina.
+ */
+const REQUEST_TIMEOUT_MS = 20_000;
+
 const apiClient = axios.create({
   baseURL: `${API_BASE_URL}${API_V1_PREFIX}`,
+  timeout: REQUEST_TIMEOUT_MS,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -83,12 +93,30 @@ export const GraphServiceAPI = {
   },
 
   runAssignment: async (
-    payload: AssignmentPayload
+    payload: AssignmentPayload,
+    signal?: AbortSignal
   ): Promise<AssignmentResultData> => {
     const response = await apiClient.post<AssignmentResultData>(
       '/graph/algorithms/assignment',
-      payload
+      payload,
+      signal ? { signal } : undefined
     );
     return response.data;
   },
 };
+
+/**
+ * Helper para abortar un request anterior cuando el usuario relanza el
+ * calculo. Evita lacondition de carrera clasica: dos clicks rapidos
+ * generan dos requests y el que responde ultimo gana, que no
+ * necesariamente es el mas reciente.
+ *
+ * Axios ya propaga el AbortError; `isCanceled` permite distinguirlo de
+ * un error real y no mostrar un toast por una cancelacion.
+ */
+export const isCanceled = (err: unknown): boolean =>
+  axios.isCancel(err) ||
+  (typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: string }).code === 'ERR_CANCELED');

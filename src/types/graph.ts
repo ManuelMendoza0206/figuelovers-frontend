@@ -82,9 +82,42 @@ export interface AssignmentAssignment {
   cost: number;
 }
 
+export interface AssignmentStepData {
+  step: number;
+  name: string;
+  matrix: number[][];
+  description: string;
+  min_uncovered: number | null;
+  /**
+   * Pares [fila, columna] de la asignacion optima, en indices de la
+   * matriz ORIGINAL (el backend ya filtra las celdas dummy del padding).
+   * Solo viene en el paso final "Select Independent Zeros".
+   */
+  selected_zeros?: [number, number][] | null;
+}
+
+/**
+ * Metadatos que el backend agrega cuando la matriz original es
+   * rectangular y necesita padding para llegar a una cuadrada.
+ * Sirve para no dibujar filas/columnas dummy como si fueran reales.
+ */
+export interface AssignmentPaddingInfo {
+  original_rows: number;
+  original_cols: number;
+  padded_size: {
+    rows: number;
+    cols: number;
+  };
+  dummy_rows: number[];
+  dummy_cols: number[];
+}
+
 export interface AssignmentResultData {
   assignments: AssignmentAssignment[];
   total_cost: number;
+  initial_cost_matrix: number[][];
+  steps: AssignmentStepData[];
+  padding_info: AssignmentPaddingInfo | null;
 }
 
 export interface AssignmentPayload {
