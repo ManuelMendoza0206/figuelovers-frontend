@@ -315,6 +315,7 @@ export const graphPayloadToFlow = (
     const folio = extractFolio(node.data);
 
     const data: AppNodeData = {
+      ...(node.data ?? {}),
       label: node.label || node.id,
       // Si el JSON no traía folio, lo dejamos ausente aquí;
       // el store se lo asigna al hacer loadGraph. El cast

@@ -24,8 +24,6 @@ import type {
     AppNode,
 } from '../types/graph';
 
-import CircularNode from './CircularNode';
-
 import {
   BEAM_OPACITY,
   BEAM_OPACITY_DIMMED,
@@ -42,22 +40,9 @@ import {
     NO_SELF_LOOP,
 } from '../lib/graphGeometry';
 import type { GraphTool } from '../types/graph';
-// Default export: es la version memoizada con comparator explicito.
-import WeightedStraightEdge from './edges/WeightedStraightEdge';
 import { GraphHud } from './GraphHud';
 import GraphToolbar from './GraphToolbar';
-
-// Constantes de modulo a proposito. React Flow compara la REFERENCIA de
-// nodeTypes/edgeTypes entre renders (error 002), asi que definirlas
-// aca es lo que evita el warning. No envolverlas en useMemo: serian una
-// indireccion sin efecto que ademas se rompe con el HMR de Vite.
-const nodeTypes = {
-  circularGraphNode: CircularNode,
-};
-
-const edgeTypes = {
-  weightedStraightEdge: WeightedStraightEdge,
-};
+import { graphEdgeTypes, graphNodeTypes } from './graphFlowTypes';
 
 const CanvasContent: React.FC = () => {
   const { screenToFlowPosition, fitView } = useReactFlow();
@@ -224,8 +209,8 @@ const CanvasContent: React.FC = () => {
       <ReactFlow
         nodes={displayNodes}
         edges={displayEdges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        nodeTypes={graphNodeTypes}
+        edgeTypes={graphEdgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
