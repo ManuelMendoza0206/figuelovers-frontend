@@ -55,6 +55,7 @@ export interface GraphValidationData {
     es_dirigido: boolean;
   };
 
+  nodos?: { id: string; data?: Record<string, unknown> | null }[];
   matriz_adyacencia: AdjacencyMatrixResponse;
 
   lista_adyacencia: Record<string, AdjacencyListItem[]>;
@@ -127,6 +128,84 @@ export interface AssignmentPayload {
   maximize?: boolean;
 }
 
+export interface NorthwestPayload {
+  costs: (number | null)[][];
+  supply: number[];
+  demand: number[];
+  row_labels: string[];
+  col_labels: string[];
+}
+
+export interface NorthwestBasicCell {
+  cell: [number, number];
+  quantity: number;
+}
+
+export interface NorthwestStep {
+  step: number;
+  cell: [number, number];
+  quantity: number;
+  supply_remaining: number[];
+  demand_remaining: number[];
+  closed: 'row' | 'column' | 'both';
+  degenerate: boolean;
+  note: string;
+  allocation: number[][];
+}
+
+export interface NorthwestResult {
+  allocation: number[][];
+  basic_cells: NorthwestBasicCell[];
+  total_cost: number | null;
+  steps: NorthwestStep[];
+  was_balanced: boolean;
+  dummy: { type: 'origin' | 'destination'; index: number; quantity: number } | null;
+  uses_blocked_routes: boolean;
+  blocked_used: {
+    cell: [number, number];
+    origin: string;
+    destination: string;
+    quantity: number;
+  }[];
+  warnings: string[];
+}
+
+export type TreeOrder = 'preorder' | 'inorder' | 'postorder';
+
+export interface TreeNodeData {
+  id: string;
+  value: number;
+  left: string | null;
+  right: string | null;
+}
+
+export interface TreeEdgeData {
+  source: string;
+  target: string;
+}
+
+export interface TreeData {
+  root_id: string | null;
+  nodes: TreeNodeData[];
+  edges: TreeEdgeData[];
+}
+
+export interface TreeBuildResult {
+  tree: TreeData;
+  traversals: Record<TreeOrder, number[]>;
+}
+
+export interface TreeTraverseResult {
+  order: TreeOrder;
+  visits: { id: string; value: number }[];
+  node_ids: string[];
+  values: number[];
+}
+
+export interface TreeReconstructResult extends TreeBuildResult {
+  is_bst: boolean;
+}
+
 export interface GraphFileMetadata {
   version: string;
   name?: string | null;
@@ -148,8 +227,14 @@ export interface GraphImportData {
 // ==========================================
 
 export interface AppNodeData {
+  [key: string]: unknown;
   label: string;
   folio: number;
+  role?: 'source' | 'sink' | 'none';
+  supply?: number;
+  demand?: number;
+  treeValue?: number;
+  treeSide?: 'left' | 'right';
 }
 
 export interface AppEdgeData {

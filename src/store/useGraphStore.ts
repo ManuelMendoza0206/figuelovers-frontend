@@ -24,7 +24,7 @@ import {
 } from '../lib/edgeFactory';
 import { computeNextFolio, ensureFolios } from '../lib/folio';
 
-import type { GraphValidationData, AppNode, AppEdge } from '../types/graph';
+import type { GraphValidationData, AppNode, AppEdge, AppNodeData } from '../types/graph';
 
 /**
  * Estado del lienzo.
@@ -53,7 +53,7 @@ interface GraphState {
   deleteNode: (nodeId: string) => void;
   deleteEdge: (edgeId: string) => void;
   reverseEdge: (edgeId: string) => void;
-  updateNodeData: (nodeId: string, label: string) => void;
+  updateNodeData: (nodeId: string, update: string | Partial<AppNodeData>) => void;
 
   updateEdgeData: (
     edgeId: string,
@@ -262,11 +262,17 @@ export const useGraphStore = create<GraphState>((set) => ({
     });
   },
 
-  updateNodeData: (nodeId, label) => {
+  updateNodeData: (nodeId, update) => {
     set((state) => {
       const updatedNodes = state.nodes.map((node) =>
         node.id === nodeId
-          ? { ...node, data: { ...node.data, label } }
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                ...(typeof update === 'string' ? { label: update } : update),
+              },
+            }
           : node
       );
 

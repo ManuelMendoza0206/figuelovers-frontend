@@ -25,6 +25,8 @@ const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'));
 
 const JohnsonPage = lazy(() => import('./pages/JohnsonPage'));
 const AssignmentPage = lazy(() => import('./pages/AssignmentPage'));
+const NorthwestPage = lazy(() => import('./pages/NorthwestPage'));
+const TreesPage = lazy(() => import('./pages/TreesPage'));
 
 const PageFallback = () => (
   <div className="flex min-h-0 flex-1 items-center justify-center p-10 text-ink-muted">
@@ -104,6 +106,8 @@ const App: React.FC = () => {
                 <Route path="galaxy/:projectId" element={<ProjectEditorPage />} />
                 <Route path="johnson" element={<JohnsonPage />} />
                 <Route path="assignment" element={<AssignmentPage />} />
+                <Route path="northwest" element={<NorthwestPage />} />
+                <Route path="trees" element={<TreesPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

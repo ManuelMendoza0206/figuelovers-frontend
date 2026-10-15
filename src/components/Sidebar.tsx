@@ -1,4 +1,4 @@
-import { ChevronDown, Crosshair, Route, Settings } from 'lucide-react';
+import { ChevronDown, Crosshair, Route, Settings, Truck, GitBranch } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEdgeDirectionLogic } from '../hooks/useEdgeDirectionLogic';
@@ -190,6 +190,28 @@ export const Sidebar: React.FC = () => {
                     (Húngaro){' '}
                     {traducibleDesdePizarra ? '(desde la pizarra)' : ''}
                   </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openAlgorithm('/northwest')}
+                className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${location.pathname === '/northwest' ? 'border-emerald-300/40 bg-emerald-300/10 text-emerald-200' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-emerald-300/25 hover:text-ink'}`}
+              >
+                <Truck className="h-4 w-4" />
+                <span>
+                  <strong className="block text-xs">Rutas de suministro</strong>
+                  <span className="font-mono text-[10px] opacity-70">(Esquina Noroeste)</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openAlgorithm('/trees')}
+                className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${location.pathname === '/trees' ? 'border-violet-300/40 bg-violet-300/10 text-violet-200' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-violet-300/25 hover:text-ink'}`}
+              >
+                <GitBranch className="h-4 w-4" />
+                <span>
+                  <strong className="block text-xs">Árbol de posibilidades</strong>
+                  <span className="font-mono text-[10px] opacity-70">(Árboles binarios)</span>
                 </span>
               </button>
             </div>

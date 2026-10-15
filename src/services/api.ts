@@ -11,6 +11,13 @@ import type {
   JohnsonResultData,
   AssignmentPayload,
   AssignmentResultData,
+  NorthwestPayload,
+  NorthwestResult,
+  TreeBuildResult,
+  TreeData,
+  TreeOrder,
+  TreeReconstructResult,
+  TreeTraverseResult,
 } from '../types/graph';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -98,6 +105,55 @@ export const GraphServiceAPI = {
   ): Promise<AssignmentResultData> => {
     const response = await apiClient.post<AssignmentResultData>(
       '/graph/algorithms/assignment',
+      payload,
+      signal ? { signal } : undefined
+    );
+    return response.data;
+  },
+
+  runNorthwest: async (
+    payload: NorthwestPayload,
+    signal?: AbortSignal
+  ): Promise<NorthwestResult> => {
+    const response = await apiClient.post<NorthwestResult>(
+      '/graph/algorithms/northwest',
+      payload,
+      signal ? { signal } : undefined
+    );
+    return response.data;
+  },
+
+  buildTree: async (
+    payload: { mode: 'values' | 'random'; values?: number[]; count?: number; seed?: number },
+    signal?: AbortSignal
+  ): Promise<TreeBuildResult> => {
+    const response = await apiClient.post<TreeBuildResult>(
+      '/graph/algorithms/tree/build',
+      payload,
+      signal ? { signal } : undefined
+    );
+    return response.data;
+  },
+
+  traverseTree: async (
+    tree: TreeData,
+    order: TreeOrder,
+    signal?: AbortSignal
+  ): Promise<TreeTraverseResult> => {
+    const response = await apiClient.post<TreeTraverseResult>(
+      '/graph/algorithms/tree/traverse',
+      { tree, order },
+      signal ? { signal } : undefined
+    );
+    return response.data;
+  },
+
+  reconstructTree: async (
+    payload: { inorder: number[]; other: number[]; other_order: 'preorder' | 'postorder' },
+    signal?: AbortSignal
+  ): Promise<TreeReconstructResult> => {
+    const response = await apiClient.post<TreeReconstructResult>(
+      '/graph/algorithms/tree/reconstruct',
       payload,
       signal ? { signal } : undefined
     );
