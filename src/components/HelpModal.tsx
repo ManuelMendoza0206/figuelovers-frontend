@@ -1,4 +1,4 @@
-import { ArrowRightLeft, ChevronDown, Crosshair, GitBranch, HelpCircle, MousePointerClick, Orbit, Plus, Route, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, ChevronDown, Crosshair, GitBranch, HelpCircle, MousePointerClick, Orbit, Plus, Route, Trash2, Truck } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { IconButton } from '../ui';
 
@@ -6,6 +6,7 @@ interface HelpItem {
   icon: React.ReactNode;
   title: string;
   description: string;
+  detail?: string;
   accent?: 'brand' | 'error';
 }
 
@@ -39,8 +40,30 @@ const HELP_ITEMS: HelpItem[] = [
 ];
 
 const ALGORITHM_ITEMS: HelpItem[] = [
-  { icon: <Route className="h-4 w-4" />, title: 'Rutas interestelares (Johnson)', description: 'Calcula las distancias mínimas entre todos los pares de estrellas en un grafo dirigido, incluso con pesos negativos.' },
-  { icon: <Crosshair className="h-4 w-4" />, title: 'Comando de misión (Húngaro)', description: 'Asigna exploradores a planetas buscando el menor costo o el mayor beneficio posible.' },
+  {
+    icon: <Route className="h-4 w-4" />,
+    title: 'Rutas interestelares (Johnson)',
+    description: 'Calcula distancias y caminos mínimos entre todos los pares de nodos.',
+    detail: 'Todas las aristas deben ser dirigidas. El servicio añade una fuente artificial y ejecuta Bellman–Ford para detectar ciclos negativos y obtener potenciales. Después repondera las aristas y ejecuta Dijkstra desde cada nodo para reconstruir distancias y caminos. ∞ significa que no existe un camino; un aviso de ciclo negativo indica que no se pueden definir distancias mínimas. Consulta la matriz de distancias y elige origen y destino para ver el camino correspondiente.',
+  },
+  {
+    icon: <Crosshair className="h-4 w-4" />,
+    title: 'Comando de misión (Asignación húngara)',
+    description: 'Busca una asignación de costo mínimo o beneficio máximo entre filas y columnas.',
+    detail: 'Al traducir un grafo, las aristas dirigidas completan [origen][destino] y las no dirigidas completan ambos sentidos. Las celdas sin conexión empiezan en 0 y deben revisarse: no significan rutas prohibidas. Para maximizar, cada valor se transforma como máximo − valor. Las matrices rectangulares se cuadran con filas o columnas ficticias y el límite es 20 × 20. Los pasos muestran las reducciones y el ajuste de ceros; son una traza didáctica, mientras que la asignación final se obtiene con el solver de asignación lineal.',
+  },
+  {
+    icon: <Truck className="h-4 w-4" />,
+    title: 'Esquina Noroeste (transporte)',
+    description: 'Construye una solución inicial de transporte comenzando por la celda superior izquierda.',
+    detail: 'Asigna roles de origen/destino y completa sus ofertas/demandas; los roles se pueden inferir de las aristas o cambiar manualmente. El método asigna el mínimo entre oferta y demanda restantes y avanza al cerrar una fila o columna. El campo was_balanced indica si los totales originales coincidían antes de cualquier ajuste; si no coinciden, se agrega un origen o destino ficticio de costo cero, identificado en dummy. Si se agotan ambos a la vez, se marca una celda básica degenerada con asignación cero. Una celda sin arista es una ruta bloqueada (se muestra —), no costo cero: si recibe cantidad, el resultado se marca NO FACTIBLE. Esta solución inicial no necesariamente minimiza el costo.',
+  },
+  {
+    icon: <GitBranch className="h-4 w-4" />,
+    title: 'Árboles binarios de búsqueda',
+    description: 'Inserta valores individuales o genera valores aleatorios para construir y recorrer un ABB.',
+    detail: 'En un ABB, los valores menores se insertan a la izquierda y los mayores a la derecha. Pre-order visita raíz–izquierda–derecha; in-order, izquierda–raíz–derecha; post-order, izquierda–derecha–raíz (para la raíz 2 con hijos 1 y 3: 2,1,3; 1,2,3; 1,3,2). También puedes reconstruir con in-order + pre-order o in-order + post-order. Pre-order + post-order no se admite porque no determina un árbol único. Las cadenas deben ser no vacías, tener valores únicos y contener el mismo conjunto; el sistema informa los faltantes/sobrantes o si los órdenes son incompatibles. Un árbol reconstruido puede ser binario general, no necesariamente ABB. Se guarda en el grafo como aristas dirigidas padre→hijo y metadatos treeValue/treeSide en node.data, así se conserva al guardar/exportar el proyecto.',
+  },
 ];
 
 const UNIVERSE_ITEMS: HelpItem[] = [
@@ -52,6 +75,7 @@ const UNIVERSE_ITEMS: HelpItem[] = [
 
 export const HelpModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedAlgorithm, setExpandedAlgorithm] = useState<number | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -145,12 +169,33 @@ export const HelpModal: React.FC = () => {
             </div>
             <p className="eyebrow mb-3 mt-6 text-[9px]">02 · algoritmos</p>
             <div className="space-y-3">
-              {ALGORITHM_ITEMS.map((item, index) => (
-                <div key={`algorithm-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-muted text-brand">{item.icon}</span>
-                  <div className="min-w-0"><p className="text-xs font-extrabold text-ink">{item.title}</p><p className="mt-0.5 text-[11px] leading-relaxed text-ink-muted">{item.description}</p></div>
-                </div>
-              ))}
+              {ALGORITHM_ITEMS.map((item, index) => {
+                const expanded = expandedAlgorithm === index;
+                const detailId = `algorithm-help-detail-${index}`;
+                return (
+                  <div key={`algorithm-${index}`} className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-controls={detailId}
+                      onClick={() => setExpandedAlgorithm((current) => current === index ? null : index)}
+                      className="flex w-full items-start gap-3 p-3 text-left"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-muted text-brand">{item.icon}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-extrabold text-ink">{item.title}</span>
+                        <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-muted">{item.description}</span>
+                      </span>
+                      <ChevronDown className={`mt-1 h-3.5 w-3.5 shrink-0 text-ink-muted transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                    </button>
+                    {expanded && (
+                      <div id={detailId} className="border-t border-white/10 px-4 py-3 pl-14 text-[11px] leading-relaxed text-ink-muted">
+                        {item.detail}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <p className="eyebrow mb-3 mt-6 text-[9px]">03 · conceptos del universo</p>
             <div className="space-y-3">
