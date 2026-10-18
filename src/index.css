@@ -5,6 +5,13 @@
   --color-brand: #72e6e0;
   --color-brand-hover: #a1f4ec;
   --color-brand-muted: #72e6e01a;
+  /* Amarillo de mision: el acento de Asignacion (hungaro), que ademas
+     aparece como acento secundario en el dashboard, la ayuda y el
+     Sidebar. Estaba repetido como literal catorce veces en una sola
+     pagina; el token lo cambia en un solo lugar. Quedan literales en
+     Landing/Johnson/Dashboard/Sidebar/HelpModal/UniverseNav por si se
+     quiere terminar de unificar. */
+  --color-mission: #ffd684;
   --color-ink: #f2f7ff;
   --color-ink-muted: #b7c5dc;
   --color-ink-subtle: #71819d;
@@ -493,6 +500,40 @@ select {
 .react-flow .react-flow__nodesselection-rect {
   background: rgb(114 230 224 / 0.08);
   border: 1px dotted rgb(114 230 224 / 0.75);
+}
+
+/* ---------------------------------------------------------------------------
+   CURSORES DE HERRAMIENTA (lienzo)
+
+   Mientras el mouse esta sobre la constelacion, el cursor ES el aviso de
+   que hace el modo activo: `crosshair` no distingue añadir de eliminar.
+   Por eso cada modo dibuja su propio SVG de 32x32 con el hotspot en el
+   centro y con los colores del sistema (brand para añadir, el rojo de las
+   confirmaciones para eliminar).
+
+   Las reglas apuntan a `.react-flow__pane/node/edge` porque React Flow les
+   asigna `cursor: grab/pointer` con una especificidad que le gana a la del
+   contenedor: sin este listado, el nodo seguia mostrando la manito.
+--------------------------------------------------------------------------- */
+
+.tool-cursor--add .react-flow__pane,
+.tool-cursor--add .react-flow__node,
+.tool-cursor--add .react-flow__edge,
+.tool-cursor--add .react-flow__edge-path {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='16' cy='16' r='12.5' fill='none' stroke='%2372e6e0' stroke-width='2.5'/%3E%3Cpath d='M16 9.5v13M9.5 16h13' stroke='%2372e6e0' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E")
+      16 16,
+    crosshair;
+}
+
+.tool-cursor--delete .react-flow__pane,
+.tool-cursor--delete .react-flow__node,
+.tool-cursor--delete .react-flow__edge,
+.tool-cursor--delete .react-flow__edge-path {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='16' cy='16' r='12.5' fill='none' stroke='%23ff9f80' stroke-width='2.5'/%3E%3Cpath d='M11.5 11.5l9 9M20.5 11.5l-9 9' stroke='%23ff9f80' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E")
+      16 16,
+    crosshair;
 }
 
 /* ---------------------------------------------------------------------------

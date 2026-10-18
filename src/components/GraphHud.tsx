@@ -8,31 +8,46 @@ interface GraphHudProps {
   onFitView: () => void;
 }
 
+/** Que esta esperando el usuario en el modo activo. El cursor ya dice el
+ *  "como" (+, ×, manito); esto dice el "que pasa si hago clic". */
+const TOOL_HINTS: Record<GraphTool, React.ReactNode> = {
+  interact: (
+    <span>
+      <strong className="font-bold text-ink">Interactuar</strong> · mueve, selecciona y edita
+    </span>
+  ),
+  connect: (
+    <span>
+      <strong className="font-bold text-ink">Conectar</strong> · arrastra de un nodo a otro
+    </span>
+  ),
+  add: (
+    <span>
+      <strong className="font-bold text-ink">Añadir</strong> · clic en el lienzo para crear una estrella
+    </span>
+  ),
+  delete: (
+    <span>
+      <strong className="font-bold text-ink">Eliminar</strong> · clic en una estrella o conexión
+    </span>
+  ),
+};
+
 export const GraphHud: React.FC<GraphHudProps> = ({ activeTool, onFitView }) => {
   const { nodes, edges } = useGraphStore();
 
   return (
     <>
-      <span className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full border border-white/10 bg-[#070d1d]/80 px-4 py-2 shadow-2xl backdrop-blur-md">
+      <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full border border-white/10 bg-[#070d1d]/80 px-4 py-2 shadow-2xl backdrop-blur-md">
         <div className="flex items-center gap-2 text-[11px] text-ink-muted">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-60" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
           </span>
 
-          {activeTool === 'interact' && (
-            <span>
-              <strong className="font-bold text-ink">Interactuar</strong> · mueve, selecciona y edita
-            </span>
-          )}
-
-          {activeTool === 'connect' && (
-            <span>
-              <strong className="font-bold text-ink">Conectar</strong> · arrastra de un nodo a otro
-            </span>
-          )}
+          {TOOL_HINTS[activeTool]}
         </div>
-      </span>
+      </div>
 
       <button
         type="button"

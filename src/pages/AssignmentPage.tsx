@@ -1,3 +1,4 @@
+import { ArrowRight, Info, Layers } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { BackButton } from '../components/BackButton';
@@ -8,6 +9,7 @@ import type { AssignmentResultData } from '../types/graph';
 import { extractApiErrorMessage } from '../utils/apiError';
 import type { GraphAssignmentTransfer } from '../utils/graphToMatrix';
 import { translateGraphToCostMatrix } from '../utils/graphToMatrix';
+import { Button } from '../ui';
 
 // Tope de dimension. Debe coincidir con el size guard del backend
 // (POST /graph/algorithms/assignment): el hungaro serializa la matriz
@@ -19,6 +21,37 @@ const clampDimension = (value: number): number =>
 
 const makeMatrix = (rows: number, cols: number): number[][] =>
   Array.from({ length: rows }, () => Array.from({ length: cols }, () => 1));
+
+/**
+ * Dos jerarquias de input, una sola fuente de verdad.
+ *
+ * La etiqueta de fila/columna es METADATO: se edita una vez y no debe
+ * competir con los costos, asi que va transparente y con borde inferior.
+ * El costo es el DATO: va en caja, con foco visible y cifras tabulares
+ * para que los digitos no bailen al cambiar de valor.
+ *
+ * Ojo con la cascada propia del proyecto: `button, input, textarea,
+ * select { font: inherit }` vive fuera de @layer en index.css, asi que le
+ * gana a las utilidades de tipografia de Tailwind. Por eso aca NO se le
+ * clavan `text-sm`/`font-bold` al input (no tendrian efecto): el tamano y
+ * la familia los aporta el contenedor. Concretamente, si el numero debe
+ * verse monoespaciado se pone `font-mono` en la CELDA, no en el input.
+ */
+const LABEL_INPUT =
+  'w-full min-w-[7rem] rounded-lg border-b border-white/20 bg-transparent px-2 py-1.5 text-ink transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30';
+
+const COST_INPUT =
+  'w-full min-w-[3.75rem] rounded-lg border border-white/10 bg-[#0b1328] px-1 py-2 text-center text-ink transition-colors focus:border-brand/50 focus:outline-none focus:ring-2 focus:ring-brand/30';
+
+/** Controles de arriba (Filas / Columnas / Objetivo), en modo "instrumento". */
+const CONTROL_BOX =
+  'flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 font-mono transition focus-within:border-brand/40';
+
+const CONTROL_CAPTION =
+  'text-[10px] font-bold uppercase tracking-[0.14em] text-ink-subtle';
+
+const CONTROL_FIELD =
+  'bg-transparent text-ink focus:outline-none';
 
 const AssignmentPage: React.FC = () => {
   const location = useLocation();
@@ -255,16 +288,23 @@ const AssignmentPage: React.FC = () => {
         ? displaySteps[currentStep - 1]?.matrix ?? []
         : [];
 
+  /**
+   * Matriz de un paso del algoritmo.
+   *
+   * Los valores son TEXTO (no inputs), asi que `font-mono` de la celda si
+   * hace efecto. Las filas/columnas de padding quedan apagadas pero no se
+   * esconden: el padding es parte del relato del metodo hungaro.
+   */
   const renderStepMatrix = (matrixValue: number[][], isResultStep = false) => {
     const stepRows = matrixValue.length;
     const stepCols = matrixValue[0]?.length ?? 0;
 
     return (
-      <div className="overflow-x-auto rounded-xl border border-white/10 bg-[#0b1328]/40 p-3">
+      <div className="custom-scrollbar overflow-x-auto rounded-xl border border-white/10 p-3">
         <table className="min-w-full border-separate border-spacing-2 text-sm">
           <thead>
             <tr>
-              <th className="px-2 py-1 text-left font-semibold text-ink-muted"> </th>
+              <th className="sticky left-0 z-10 bg-surface px-2 py-1 text-left font-semibold text-ink-muted"> </th>
               {Array.from({ length: stepCols }, (_, colIndex) => (
                 <th key={`step-col-${colIndex}`} className="px-2 py-1 text-ink-muted">
                   {dummyCols.has(colIndex)
@@ -277,7 +317,7 @@ const AssignmentPage: React.FC = () => {
           <tbody>
             {Array.from({ length: stepRows }, (_, rowIndex) => (
               <tr key={`step-row-${rowIndex}`} className={dummyRows.has(rowIndex) ? 'opacity-40' : undefined}>
-                <th className="px-2 py-1 font-semibold text-ink-muted">
+                <th className="sticky left-0 z-10 bg-surface px-2 py-1 font-semibold text-ink-muted">
                   {dummyRows.has(rowIndex)
                     ? 'padding'
                     : rowLabels[rowIndex] ?? `Trabajador ${rowIndex + 1}`}
@@ -296,11 +336,11 @@ const AssignmentPage: React.FC = () => {
                   return (
                     <td
                       key={`step-cell-${rowIndex}-${colIndex}`}
-                      className={`rounded-lg border px-2 py-1 text-center font-mono ${
+                      className={`rounded-lg border px-2 py-1 text-center font-mono tabular-nums ${
                         isDummy
                           ? 'border-white/5 text-ink-subtle'
                           : assigned
-                            ? 'border-[#ffd684] bg-[#ffd684]/15 font-bold text-[#ffd684]'
+                            ? 'border-mission bg-mission/15 font-bold text-mission'
                             : changed
                               ? 'border-brand bg-brand/10 text-brand'
                               : 'border-white/10 text-ink'
@@ -318,6 +358,30 @@ const AssignmentPage: React.FC = () => {
     );
   };
 
+  /**
+   * Leyenda de la matriz de pasos.
+   *
+   * Los tres colores ya existian, pero nadie los explicaba: un cero con
+   * borde amarillo no significa lo mismo que un cambio recien aplicado, y
+   * las filas de padding se confundian con valores bajos.
+   */
+  const stepLegend = (
+    <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-ink-muted">
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-sm border border-mission bg-mission/20" />
+        celda asignada
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-sm border border-brand bg-brand/20" />
+        cambió respecto del paso anterior
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-sm border border-white/15 bg-white/5" />
+        fila o columna de padding
+      </span>
+    </p>
+  );
+
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden text-ink">
       <main className="flex min-w-0 flex-1 flex-col gap-6 overflow-auto p-6">
@@ -325,22 +389,41 @@ const AssignmentPage: React.FC = () => {
         <BackButton to={returnTo} />
         <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">mission control / 06</span>
       </div>
-      <div className="glass-panel rounded-2xl p-5">
-        <div className="mb-4 rounded-xl border border-brand/20 bg-brand/10 p-3 text-sm text-brand">
-          Este problema no trabaja con nodos del grafo. Es una matriz de costos entre <strong>trabajadores</strong> y <strong>tareas</strong>.
-          Cada fila representa un trabajador y cada columna representa una tarea.
-        </div>
 
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
+      <header className="glass-panel rise-in rounded-2xl p-5 sm:p-6">
+        <p className="flex items-start gap-2 rounded-xl border border-brand/20 bg-brand/10 px-3 py-2.5 text-sm leading-relaxed text-brand">
+          <Info aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Este problema no trabaja con nodos del grafo. Es una matriz de costos
+            entre <strong>trabajadores</strong> y <strong>tareas</strong>. Cada fila
+            representa un trabajador y cada columna representa una tarea.
+          </span>
+        </p>
+
+        <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
             <p className="eyebrow">Nivel 06 · comando de misión</p>
-            <h1 className="mt-2 font-display text-2xl font-extrabold text-ink">Asignación planetaria</h1>
+            <h1 className="mt-2 font-display text-3xl font-extrabold text-ink">Asignación planetaria</h1>
             <p className="mt-1 text-sm text-ink-muted">Resuelve la misión óptima usando el algoritmo húngaro.</p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px]">
+              <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 font-mono uppercase tracking-[0.16em] text-ink-muted">
+                {rows} × {cols}
+              </span>
+              <span className="rounded-full border border-mission/30 bg-mission/10 px-2.5 py-1 font-semibold uppercase tracking-[0.12em] text-mission">
+                {maximize ? 'maximizar beneficio' : 'minimizar costo'}
+              </span>
+              {boardSource && (
+                <span className="rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 font-semibold uppercase tracking-[0.12em] text-brand">
+                  traducido desde la constelación
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="text-sm text-ink-muted">
-              <span className="mr-2">Filas</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className={CONTROL_BOX}>
+              <span className={CONTROL_CAPTION}>Filas</span>
               <input
                 type="number"
                 min={1}
@@ -351,12 +434,12 @@ const AssignmentPage: React.FC = () => {
                   setRows(nextRows);
                   syncMatrixDimensions(nextRows, cols);
                 }}
-                className="w-20 rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink"
+                className={`${CONTROL_FIELD} w-14 text-center`}
               />
             </label>
 
-            <label className="text-sm text-ink-muted">
-              <span className="mr-2">Columnas</span>
+            <label className={CONTROL_BOX}>
+              <span className={CONTROL_CAPTION}>Columnas</span>
               <input
                 type="number"
                 min={1}
@@ -367,107 +450,140 @@ const AssignmentPage: React.FC = () => {
                   setCols(nextCols);
                   syncMatrixDimensions(rows, nextCols);
                 }}
-                className="w-20 rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink"
+                className={`${CONTROL_FIELD} w-14 text-center`}
               />
             </label>
 
-            <label className="text-sm text-ink-muted">
-              <span className="mr-2">Objetivo</span>
-              <select value={maximize ? 'maximize' : 'minimize'} onChange={(e) => setMaximize(e.target.value === 'maximize')} className="rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink">
-                <option value="minimize">Minimizar costo</option>
-                <option value="maximize">Maximizar beneficio</option>
+            <label className={CONTROL_BOX}>
+              <span className={CONTROL_CAPTION}>Objetivo</span>
+              <select
+                value={maximize ? 'maximize' : 'minimize'}
+                onChange={(e) => setMaximize(e.target.value === 'maximize')}
+                className={CONTROL_FIELD}
+              >
+                <option value="minimize" className="bg-surface text-ink">Minimizar costo</option>
+                <option value="maximize" className="bg-surface text-ink">Maximizar beneficio</option>
               </select>
             </label>
 
-            <button
+            <Button
               type="button"
               onClick={handleRun}
-              disabled={loading}
-              className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              loading={loading}
+              className="lg:ml-2"
             >
-              {loading ? 'Calculando…' : 'Calcular asignación'}
-            </button>
+              Calcular asignación
+            </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="glass-panel overflow-auto rounded-2xl p-4">
-        <table className="min-w-full border-separate border-spacing-2 text-sm">
-          <thead>
-            <tr>
-                  <th className="px-2 py-1 text-left font-semibold text-ink-muted"> </th>
-              {Array.from({ length: cols }, (_, colIndex) => (
-                <th key={`col-${colIndex}`} className="px-2 py-1 text-ink-muted">
-                  <input
-                    value={colLabels[colIndex] ?? `Tarea ${String.fromCharCode(65 + colIndex)}`}
-                    onChange={(e) => {
-                      const next = [...colLabels];
-                      next[colIndex] = e.target.value;
-                      setColLabels(next);
-                    }}
-                    className="w-full rounded-lg border border-white/10 bg-[#0b1328] p-2 text-center text-ink"
-                  />
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: rows }, (_, rowIndex) => (
-              <tr key={`row-${rowIndex}`}>
-                <td className="px-2 py-1 font-semibold text-ink-muted">
-                  <input
-                    value={rowLabels[rowIndex] ?? `Trabajador ${rowIndex + 1}`}
-                    onChange={(e) => {
-                      const next = [...rowLabels];
-                      next[rowIndex] = e.target.value;
-                      setRowLabels(next);
-                    }}
-                    className="w-full rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink"
-                  />
-                </td>
-                {Array.from({ length: cols }, (_, colIndex) => (
-                  <td key={`cell-${rowIndex}-${colIndex}`} className="px-1 py-1">
-                    <input
-                      type="number"
-                      value={matrix[rowIndex]?.[colIndex] ?? 0}
-                      onChange={(e) =>
-                        updateCell(rowIndex, colIndex, e.target.value)
-                      }
-                      className={`w-20 rounded-lg border p-2 text-center text-ink ${
-                        assignedCells.has(`${rowIndex},${colIndex}`)
-                          ? 'border-[#ffd684] bg-[#ffd684]/15 text-[#ffd684]'
-                          : 'border-white/10 bg-[#0b1328]'
-                      }`}
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
+      {/* Aviso de traduccion desde la pizarra: va a ancho completo, antes
+          del area de dos columnas, porque describe el ORIGEN de la matriz
+          y no una sola de las dos piezas. */}
       {boardSource && boardTranslation?.ok && (
-        <div className="mb-4 rounded-xl border border-brand/20 bg-brand/10 p-3 text-sm text-brand">
-          Matriz traducida desde tu constelación:{' '}
-          {boardTranslation.translation.edgeCount}{' '}
-          {boardTranslation.translation.edgeCount === 1
-            ? 'conexión'
-            : 'conexiones'}
-          . Las{' '}
-          <strong>{boardTranslation.translation.emptyCells.length}</strong> celdas
-          sin conexión quedaron en{' '}
-          <span className="font-mono font-bold">0</span> y son editables.
-          {' '}<strong>Ojo:</strong> el 0 es el valor más barato, así que si las
-          dejás así el algoritmo va a elegir justamente esas parejas. Poné el
-          costo real, o un valor alto si querés que queden prohibidas.
-        </div>
+        <p className="flex items-start gap-2 rounded-2xl border border-brand/20 bg-brand/10 px-4 py-3 text-sm leading-relaxed text-brand animate-in fade-in slide-in-from-top-2">
+          <Layers aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Matriz traducida desde tu constelación:{' '}
+            {boardTranslation.translation.edgeCount}{' '}
+            {boardTranslation.translation.edgeCount === 1
+              ? 'conexión'
+              : 'conexiones'}
+            . Las{' '}
+            <strong>{boardTranslation.translation.emptyCells.length}</strong> celdas
+            sin conexión quedaron en{' '}
+            <span className="font-mono font-bold">0</span> y son editables.
+            {' '}<strong>Ojo:</strong> el 0 es el valor más barato, así que si las
+            dejás así el algoritmo va a elegir justamente esas parejas. Poné el
+            costo real, o un valor alto si querés que queden prohibidas.
+          </span>
+        </p>
       )}
+
+      {/* La matriz (donde se edita) y el resultado (donde se lee) van
+          lado a lado en desktop y se apilan en pantallas chicas. Si lo
+          hacen, el orden es intencional: primero se edita, despues se lee. */}
+      <div className="grid items-start gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <section className="glass-panel min-w-0 rounded-2xl p-4 sm:p-5" aria-label="Matriz de costos">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-display text-lg font-bold text-ink">Matriz de costos</h2>
+            <p className="text-xs text-ink-muted">Editá los costos y los nombres de fila y columna.</p>
+          </div>
+
+          <div className="custom-scrollbar mt-4 overflow-x-auto rounded-xl border border-white/10 p-3">
+            <table className="min-w-full border-separate border-spacing-2 text-sm">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-surface px-2 py-1 text-left font-semibold text-ink-muted"> </th>
+                  {Array.from({ length: cols }, (_, colIndex) => (
+                    <th key={`col-${colIndex}`} className="px-2 py-1 font-mono text-ink-muted">
+                      <input
+                        aria-label={`Nombre de la columna ${colIndex + 1}`}
+                        value={colLabels[colIndex] ?? `Tarea ${String.fromCharCode(65 + colIndex)}`}
+                        onChange={(e) => {
+                          const next = [...colLabels];
+                          next[colIndex] = e.target.value;
+                          setColLabels(next);
+                        }}
+                        className={LABEL_INPUT}
+                      />
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: rows }, (_, rowIndex) => (
+                  <tr key={`row-${rowIndex}`}>
+                    <td className="sticky left-0 z-10 bg-surface px-2 py-1 font-semibold text-ink-muted">
+                      <input
+                        aria-label={`Nombre de la fila ${rowIndex + 1}`}
+                        value={rowLabels[rowIndex] ?? `Trabajador ${rowIndex + 1}`}
+                        onChange={(e) => {
+                          const next = [...rowLabels];
+                          next[rowIndex] = e.target.value;
+                          setRowLabels(next);
+                        }}
+                        className={LABEL_INPUT}
+                      />
+                    </td>
+                    {Array.from({ length: cols }, (_, colIndex) => (
+                      <td key={`cell-${rowIndex}-${colIndex}`} className="px-1 py-1 font-mono">
+                        <input
+                          type="number"
+                          aria-label={`Costo ${rowIndex + 1}, columna ${colIndex + 1}`}
+                          value={matrix[rowIndex]?.[colIndex] ?? 0}
+                          onChange={(e) =>
+                            updateCell(rowIndex, colIndex, e.target.value)
+                          }
+                          className={[
+                            COST_INPUT,
+                            assignedCells.has(`${rowIndex},${colIndex}`) &&
+                              'border-mission bg-mission/15 text-mission',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {freshResult && (
+            <p className="mt-3 flex items-center gap-2 text-[11px] text-ink-muted">
+              <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-sm border border-mission bg-mission/20" />
+              celda asignada en la solución óptima
+            </p>
+          )}
+        </section>
 
       {graphTransfer && boardTranslation && !boardTranslation.ok && (
         <div
           role="alert"
-          className="mb-4 rounded-xl border border-error-border bg-error-bg p-3 text-sm text-error"
+          className="rounded-2xl border border-error-border bg-error-bg p-4 text-sm font-medium text-error"
         >
           No se pudo traducir la constelación: {boardTranslation.blocked.reason}
         </div>
@@ -482,50 +598,72 @@ const AssignmentPage: React.FC = () => {
         </div>
       )}
 
-      {freshResult && (
-        <div className="glass-panel rounded-2xl border-[#ffd684]/25 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="font-display text-lg font-bold text-ink">Resultado de la misión</h2>
-              <p className="mt-1 text-sm text-ink-muted">Costo total: <span className="font-semibold text-brand">{freshResult.total_cost}</span></p>
+        {freshResult && (
+          <section
+            className="glass-panel animate-in fade-in slide-in-from-top-2 min-w-0 rounded-2xl border border-mission/25 p-5"
+            aria-live="polite"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="eyebrow text-mission">asignación óptima</p>
+
+              {stepCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowProcess((visible) => !visible)}
+                  className="rounded-xl border border-mission/40 px-3 py-1.5 text-xs font-semibold text-mission transition-colors hover:bg-mission/10"
+                >
+                  {showProcess ? 'Ocultar proceso' : 'Ver proceso paso a paso'}
+                </button>
+              )}
             </div>
 
-            {stepCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowProcess((visible) => !visible)}
-                className="rounded-xl border border-[#ffd684]/40 px-3 py-1.5 text-xs font-semibold text-[#ffd684] transition-colors hover:bg-[#ffd684]/10"
-              >
-                {showProcess ? 'Ocultar proceso' : 'Ver proceso paso a paso'}
-              </button>
-            )}
-          </div>
+            <h2 className="mt-2 font-display text-lg font-bold text-ink">Resultado de la misión</h2>
 
-          <div className="mt-4 overflow-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-[#ffd684]/10">
-                <tr>
-                  <th className="px-3 py-2 font-semibold text-[#ffd684]">Fila</th>
-                  <th className="px-3 py-2 font-semibold text-[#ffd684]">Columna</th>
-                  <th className="px-3 py-2 font-semibold text-[#ffd684]">Costo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {freshResult.assignments.map((assignment) => (
-                  <tr key={`${assignment.row}-${assignment.col}`} className="border-t border-white/10">
-                    <td className="px-3 py-2 text-ink">{assignment.row}</td>
-                    <td className="px-3 py-2 text-ink">{assignment.col}</td>
-                    <td className="px-3 py-2 font-mono text-[#ffd684]">{assignment.cost}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+            {/* El KPI va desacompanado a proposito: el numero es lo unico
+                que se lee de lejos y `Costo total` deja de competir con el
+                para volver a ser un caption. */}
+            <div className="mt-4 rounded-2xl border border-mission/25 bg-mission/[0.07] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-mission">costo total</p>
+              <p className="mt-1 font-display text-5xl font-extrabold leading-none text-ink">
+                <span>{freshResult.total_cost}</span>
+              </p>
+              <p className="mt-2 text-xs text-ink-muted">
+                {maximize ? 'Maximización de beneficio' : 'Minimización de costo'} ·{' '}
+                {freshResult.assignments.length}{' '}
+                {freshResult.assignments.length === 1 ? 'asignación' : 'asignaciones'}
+              </p>
+            </div>
+
+            {/* Asignaciones como pares origen → destino. En la tabla de
+                tres columnas el usuario tenia que mirar tres veces para
+                armar una sola oracion en la cabeza. */}
+            <ul className="mt-4 space-y-2">
+              {freshResult.assignments.map((assignment) => (
+                <li
+                  key={`${assignment.row}-${assignment.col}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2"
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-sm">
+                    <span className="truncate rounded-md bg-brand/10 px-2 py-1 text-xs font-semibold text-brand">
+                      {assignment.row}
+                    </span>
+                    <ArrowRight aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-ink-subtle" />
+                    <span className="truncate rounded-md bg-mission/10 px-2 py-1 text-xs font-semibold text-mission">
+                      {assignment.col}
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-mono text-sm font-bold tabular-nums text-ink">
+                    {assignment.cost}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
 
       {activeStep && (
-        <div className="glass-panel rounded-2xl border-[#ffd684]/25 p-5">
+        <section className="glass-panel animate-in fade-in rounded-2xl border border-mission/25 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-display text-lg font-bold text-ink">Proceso del algoritmo</h2>
@@ -533,7 +671,7 @@ const AssignmentPage: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-3">
-              <span className="rounded-full border border-[#ffd684]/40 px-3 py-1 font-mono text-xs font-semibold text-[#ffd684]">
+              <span className="rounded-full border border-mission/40 px-3 py-1 font-mono text-xs font-semibold text-mission">
                 Paso {Math.min(currentStep, stepCount - 1) + 1} de {stepCount}
               </span>
 
@@ -546,6 +684,33 @@ const AssignmentPage: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Cada paso es un chip navegable. Con matrices grandes el
+              hungaro genera muchos pasos y el slider solo sirve para
+              saltar a ciegas: los chips muestran de un vistazo donde se
+              esta y que viene. */}
+          {stepCount > 1 && (
+            <div className="mt-4 flex flex-wrap gap-1.5" role="group" aria-label="Pasos del algoritmo">
+              {displaySteps.map((step, index) => (
+                <button
+                  key={`step-chip-${index}`}
+                  type="button"
+                  onClick={() => setCurrentStep(index)}
+                  aria-pressed={index === Math.min(currentStep, stepCount - 1)}
+                  title={step.name}
+                  className={[
+                    'flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors',
+                    index === Math.min(currentStep, stepCount - 1)
+                      ? 'border-mission/50 bg-mission/15 text-mission'
+                      : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-brand/40 hover:text-ink',
+                  ].join(' ')}
+                >
+                  <span className="font-mono">{step.step}</span>
+                  <span className="hidden sm:inline">{step.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <button
@@ -564,7 +729,7 @@ const AssignmentPage: React.FC = () => {
               value={Math.min(currentStep, stepCount - 1)}
               onChange={(event) => setCurrentStep(Number(event.target.value))}
               aria-label="Paso del algoritmo"
-              className="w-40 accent-[#ffd684]"
+              className="w-40 accent-mission"
             />
 
             <button
@@ -577,12 +742,12 @@ const AssignmentPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="mt-4 rounded-xl border border-[#ffd684]/20 bg-[#ffd684]/5 p-4">
+          <div className="mt-4 rounded-xl border border-mission/20 bg-mission/5 p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-lg bg-[#ffd684]/15 px-2.5 py-1 font-mono text-xs font-bold text-[#ffd684]">Paso {activeStep.step}</span>
+              <span className="rounded-lg bg-mission/15 px-2.5 py-1 font-mono text-xs font-bold text-mission">Paso {activeStep.step}</span>
               <span className="text-sm font-bold text-ink">{activeStep.name}</span>
               {typeof activeStep.min_uncovered === 'number' && (
-                <span className="font-mono text-xs text-[#ffd684]">mínimo no cubierto = {activeStep.min_uncovered}</span>
+                <span className="font-mono text-xs text-mission">mínimo no cubierto = {activeStep.min_uncovered}</span>
               )}
             </div>
             <p className="mt-2 text-sm text-ink-muted">{activeStep.description}</p>
@@ -593,8 +758,9 @@ const AssignmentPage: React.FC = () => {
               activeStep.matrix,
               activeStep === resultStep
             )}
+            {stepLegend}
           </div>
-        </div>
+        </section>
       )}
       </main>
       <aside className="h-full shrink-0" aria-label="Panel de propiedades y herramientas">

@@ -15,6 +15,9 @@ import {
 
 import { extractApiErrorMessage } from '../utils/apiError';
 
+import { EDITOR_EVENTS } from '../lib/editorEvents';
+import { useEditorEvent } from '../hooks/useEditorEvent';
+
 import { AdjListModal } from './AdjListModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { HelpModal } from './HelpModal';
@@ -159,6 +162,12 @@ export const Navbar: React.FC = () => {
 
     setIsClearDialogOpen(true);
   };
+
+  // Atajo O del lienzo: llega como pedido de edicion y abre EXACTAMENTE
+  // el mismo dialogo que el boton "Limpiar Todo", con la misma validacion
+  // de lienzo vacio. El atajo no vive en el Navbar a proposito: solo
+  // existe cuando la constelacion esta montada.
+  useEditorEvent(EDITOR_EVENTS.requestClear, handleClearGraph);
 
   const confirmClearGraph = () => {
     clearGraph();

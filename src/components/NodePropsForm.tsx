@@ -13,14 +13,12 @@ const NodeIcon: React.FC = () => (
 interface NodePropsFormProps {
   node: AppNode;
   onSave: (label: string) => void;
-  onDelete: () => void;
   disabled?: boolean;
 }
 
 export const NodePropsForm: React.FC<NodePropsFormProps> = ({
   node,
   onSave,
-  onDelete,
   disabled = false,
 }) => {
   const [nodeLabel, setNodeLabel] = useState(node.data?.label ?? '');
@@ -71,16 +69,18 @@ export const NodePropsForm: React.FC<NodePropsFormProps> = ({
 
         <div className="border-t border-border pt-5" />
 
-        <Button
-          type="button"
-          onClick={onDelete}
-          variant="danger"
-          className="border border-[#ff9f80]/30 bg-[#ff9f80]/10 text-[#ffb09a] hover:bg-[#ff9f80]/20"
-          leftIcon={<Trash2 className="h-4 w-4" />}
-          disabled={disabled}
-        >
-          Eliminar nodo
-        </Button>
+        {/* Antes aca vivia el boton "Eliminar nodo". Ahora hay UN solo
+            botón de eliminar (el del lienzo) y el que dispara el borrado
+            es el clic sobre el elemento, asi que esto solo orienta. */}
+        <p className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-[11px] leading-relaxed text-ink-muted">
+          <Trash2 aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#ffb09a]" />
+          <span>
+            Para eliminar esta estrella: activa el modo{' '}
+            <strong className="font-bold text-ink">Eliminar</strong> en la
+            barra del lienzo y haz clic sobre ella. Atajo{' '}
+            <kbd className="rounded border border-white/15 bg-white/[0.06] px-1 py-0.5 font-mono text-[10px] text-ink">P</kbd>.
+          </span>
+        </p>
       </form>
     </section>
   );

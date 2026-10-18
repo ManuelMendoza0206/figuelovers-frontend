@@ -1,6 +1,8 @@
-import { ArrowRightLeft, ChevronDown, Crosshair, GitBranch, HelpCircle, MousePointerClick, Orbit, Plus, Route, Trash2, Truck } from 'lucide-react';
+import { ArrowRightLeft, ChevronDown, Crosshair, GitBranch, HelpCircle, Keyboard, MousePointerClick, Orbit, Plus, Route, Trash2, Truck } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { IconButton } from '../ui';
+import { EDITOR_EVENTS } from '../lib/editorEvents';
+import { useEditorEvent } from '../hooks/useEditorEvent';
 
 interface HelpItem {
   icon: React.ReactNode;
@@ -9,6 +11,20 @@ interface HelpItem {
   detail?: string;
   accent?: 'brand' | 'error';
 }
+
+/**
+ * Atajos del lienzo. La fuente de verdad del mapeo es GraphToolbar
+ * (tecla junto a cada boton); esto es solo la vista impresa.
+ */
+const SHORTCUTS: { key: string; label: string }[] = [
+  { key: 'Q', label: 'Interactuar' },
+  { key: 'W', label: 'Conectar' },
+  { key: 'E', label: 'Añadir nodo' },
+  { key: 'P', label: 'Eliminar' },
+  { key: 'H', label: 'Abrir esta ayuda' },
+  { key: 'O', label: 'Limpiar todo' },
+  { key: 'Esc', label: 'Volver a Interactuar' },
+];
 
 const HELP_ITEMS: HelpItem[] = [
   {
@@ -24,7 +40,7 @@ const HELP_ITEMS: HelpItem[] = [
   {
     icon: <Plus className="h-4 w-4" />,
     title: 'Crear nodos',
-    description: 'Usa "Añadir nodo" o haz doble clic sobre una zona vacía del lienzo.',
+    description: 'Activa Añadir nodo: el cursor se convierte en un + y la estrella nace exactamente donde hagas clic. En modo Interactuar, el doble clic sobre el lienzo vacío también crea una estrella.',
   },
   {
     icon: <ArrowRightLeft className="h-4 w-4" />,
@@ -34,7 +50,7 @@ const HELP_ITEMS: HelpItem[] = [
   {
     icon: <Trash2 className="h-4 w-4" />,
     title: 'Eliminar',
-    description: 'Selecciona un elemento y utiliza el botón Eliminar del panel lateral.',
+    description: 'Activa Eliminar: el cursor se convierte en una × y, al hacer clic en una estrella o en una conexión, aparece la confirmación de ese elemento. Un único botón sirve para los dos.',
     accent: 'error',
   },
 ];
@@ -78,6 +94,9 @@ export const HelpModal: React.FC = () => {
   const [expandedAlgorithm, setExpandedAlgorithm] = useState<number | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Atajo H del lienzo: alterna la ayuda sin importar donde este el mouse.
+  useEditorEvent(EDITOR_EVENTS.openHelp, () => setIsOpen((current) => !current));
 
   useEffect(() => {
     if (!isOpen) return;
@@ -167,7 +186,24 @@ export const HelpModal: React.FC = () => {
                 </div>
               ))}
             </div>
-            <p className="eyebrow mb-3 mt-6 text-[9px]">02 · algoritmos</p>
+            <p className="eyebrow mb-3 mt-6 text-[9px]">02 · atajos de teclado</p>
+            <div className="space-y-1.5">
+              {SHORTCUTS.map((shortcut) => (
+                <div
+                  key={shortcut.key}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2"
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-[11px] text-ink-muted">
+                    <Keyboard aria-hidden className="h-3.5 w-3.5 shrink-0 text-brand" />
+                    <span className="truncate">{shortcut.label}</span>
+                  </span>
+                  <kbd className="shrink-0 rounded border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] font-medium text-ink">
+                    {shortcut.key}
+                  </kbd>
+                </div>
+              ))}
+            </div>
+            <p className="eyebrow mb-3 mt-6 text-[9px]">03 · algoritmos</p>
             <div className="space-y-3">
               {ALGORITHM_ITEMS.map((item, index) => {
                 const expanded = expandedAlgorithm === index;
@@ -197,7 +233,7 @@ export const HelpModal: React.FC = () => {
                 );
               })}
             </div>
-            <p className="eyebrow mb-3 mt-6 text-[9px]">03 · conceptos del universo</p>
+            <p className="eyebrow mb-3 mt-6 text-[9px]">04 · conceptos del universo</p>
             <div className="space-y-3">
               {UNIVERSE_ITEMS.map((item, index) => (
                 <div key={`universe-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3">

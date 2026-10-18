@@ -5,7 +5,6 @@ import { useEdgeDirectionLogic } from '../hooks/useEdgeDirectionLogic';
 import { useGraphStore } from '../store/useGraphStore';
 import type { GraphAssignmentTransfer } from '../utils/graphToMatrix';
 import { translateGraphToCostMatrix } from '../utils/graphToMatrix';
-import { ConfirmDialog } from './ConfirmDialog';
 import { EdgePropsForm } from './EdgePropsForm';
 import { EmptyState } from './EmptyState';
 import { NodePropsForm } from './NodePropsForm';
@@ -22,8 +21,6 @@ export const Sidebar: React.FC = () => {
     selectedEdge,
     updateNodeData,
     updateEdgeData,
-    deleteNode,
-    deleteEdge,
     reverseEdge,
   } = useGraphStore();
 
@@ -31,7 +28,6 @@ export const Sidebar: React.FC = () => {
     existingDirectedEdge,
     shouldReverseToRespectExisting,
   } = useEdgeDirectionLogic(selectedEdge, nodes, edges);
-  const [confirmAction, setConfirmAction] = useState<'node' | 'edge' | null>(null);
 
   const returnTo = location.pathname.startsWith('/galaxy/') || location.pathname === '/editor'
     ? location.pathname
@@ -108,11 +104,6 @@ export const Sidebar: React.FC = () => {
     [selectedNode, updateNodeData]
   );
 
-  const handleDeleteNode = useCallback(() => {
-    if (!selectedNode) return;
-    setConfirmAction('node');
-  }, [selectedNode]);
-
   const handleSaveEdge = useCallback(
     (weight: number, isDirected: boolean) => {
       if (!selectedEdge) return;
@@ -131,18 +122,12 @@ export const Sidebar: React.FC = () => {
     [selectedEdge, existingDirectedEdge, shouldReverseToRespectExisting, updateEdgeData, reverseEdge]
   );
 
-  const handleDeleteEdge = useCallback(() => {
-    if (!selectedEdge) return;
-    setConfirmAction('edge');
-  }, [selectedEdge]);
-
   const handleReverseEdge = useCallback(() => {
     if (!selectedEdge) return;
     reverseEdge(selectedEdge.id);
   }, [selectedEdge, reverseEdge]);
 
   return (
-    <>
     <aside className="z-20 flex w-full shrink-0 flex-col border-white/10 bg-[#0d1832] shadow-[-8px_0_30px_rgba(0,0,0,0.25)] md:h-full md:w-80 md:border-l">
       <div
         className="relative shrink-0 border-b border-white/10 bg-[#101b37] px-4 py-3 md:px-5 md:py-4"
@@ -225,7 +210,6 @@ export const Sidebar: React.FC = () => {
             key={`node-${selectedNode.id}`}
             node={selectedNode}
             onSave={handleSaveNode}
-            onDelete={handleDeleteNode}
           />
         )}
 
@@ -236,7 +220,6 @@ export const Sidebar: React.FC = () => {
             nodes={nodes}
             edges={edges}
             onSave={handleSaveEdge}
-            onDelete={handleDeleteEdge}
             onReverse={handleReverseEdge}
           />
         )}
@@ -244,18 +227,5 @@ export const Sidebar: React.FC = () => {
         {!selectedNode && !selectedEdge && <EmptyState />}
       </div>
     </aside>
-    <ConfirmDialog
-      isOpen={confirmAction !== null}
-      title={confirmAction === 'node' ? '¿Eliminar esta estrella?' : '¿Eliminar esta conexión?'}
-      message={confirmAction === 'node' ? 'También desaparecerán las líneas conectadas a esta estrella.' : 'La conexión se retirará de la constelación.'}
-      confirmLabel="Eliminar"
-      onCancel={() => setConfirmAction(null)}
-      onConfirm={() => {
-        if (confirmAction === 'node' && selectedNode) deleteNode(selectedNode.id);
-        if (confirmAction === 'edge' && selectedEdge) deleteEdge(selectedEdge.id);
-        setConfirmAction(null);
-      }}
-    />
-    </>
   );
 };

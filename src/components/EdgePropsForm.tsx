@@ -15,7 +15,6 @@ interface EdgePropsFormProps {
   nodes: AppNode[];
   edges: AppEdge[];
   onSave: (weight: number, isDirected: boolean) => void;
-  onDelete: () => void;
   onReverse: () => void;
   disabled?: boolean;
 }
@@ -25,7 +24,6 @@ export const EdgePropsForm: React.FC<EdgePropsFormProps> = ({
   nodes,
   edges,
   onSave,
-  onDelete,
   onReverse,
   disabled = false,
 }) => {
@@ -159,9 +157,17 @@ export const EdgePropsForm: React.FC<EdgePropsFormProps> = ({
 
         <div className="border-t border-border pt-5" />
 
-        <Button type="button" onClick={onDelete} variant="danger" leftIcon={<Trash2 className="h-4 w-4" />} disabled={disabled}>
-          Eliminar arista
-        </Button>
+        {/* Antes aca vivia el boton "Eliminar arista". El borrado ahora
+            tiene un unico punto de entrada: el modo Eliminar del lienzo. */}
+        <p className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-[11px] leading-relaxed text-ink-muted">
+          <Trash2 aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#ffb09a]" />
+          <span>
+            Para eliminar esta conexión: activa el modo{' '}
+            <strong className="font-bold text-ink">Eliminar</strong> en la
+            barra del lienzo y haz clic sobre ella. Atajo{' '}
+            <kbd className="rounded border border-white/15 bg-white/[0.06] px-1 py-0.5 font-mono text-[10px] text-ink">P</kbd>.
+          </span>
+        </p>
       </form>
     </section>
   );
