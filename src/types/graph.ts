@@ -202,10 +202,6 @@ export interface TreeTraverseResult {
   values: number[];
 }
 
-export interface TreeReconstructResult extends TreeBuildResult {
-  is_bst: boolean;
-}
-
 export interface GraphFileMetadata {
   version: string;
   name?: string | null;

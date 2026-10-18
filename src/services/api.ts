@@ -16,7 +16,6 @@ import type {
   TreeBuildResult,
   TreeData,
   TreeOrder,
-  TreeReconstructResult,
   TreeTraverseResult,
 } from '../types/graph';
 
@@ -143,18 +142,6 @@ export const GraphServiceAPI = {
     const response = await apiClient.post<TreeTraverseResult>(
       '/graph/algorithms/tree/traverse',
       { tree, order },
-      signal ? { signal } : undefined
-    );
-    return response.data;
-  },
-
-  reconstructTree: async (
-    payload: { inorder: number[]; other: number[]; other_order: 'preorder' | 'postorder' },
-    signal?: AbortSignal
-  ): Promise<TreeReconstructResult> => {
-    const response = await apiClient.post<TreeReconstructResult>(
-      '/graph/algorithms/tree/reconstruct',
-      payload,
       signal ? { signal } : undefined
     );
     return response.data;

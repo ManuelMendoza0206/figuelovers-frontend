@@ -107,4 +107,13 @@ describe('CircularNode - estrella', () => {
 
     expect(container.querySelector('.star-ring')).not.toBeNull();
   });
+
+  it('dibuja el anillo dorado del camino sin necesidad de seleccion', () => {
+    const { container } = renderNode(
+      node({ data: { label: 'A', folio: 1, isPathNode: true } })
+    );
+
+    expect(container.querySelector('.star-path')).not.toBeNull();
+    expect(container.querySelector('.star-ring')).toBeNull();
+  });
 });

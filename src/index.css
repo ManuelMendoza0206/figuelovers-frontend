@@ -230,6 +230,23 @@ select {
   }
 }
 
+/* Sidebar de trabajo (árboles): al entrar desde otra pantalla el panel
+   crece de 320px a 460px en vez de aparecer de golpe. Es el único
+   momento animado de esa página y corre una sola vez por entrada; el
+   ancho final lo fija la clase md:w-[460px] del propio panel. En mobile
+   no aplica (el sidebar se apila a ancho completo) y con movimiento
+   reducido tampoco: el ancho se resuelve seco. */
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .sidebar-expand {
+    animation: sidebar-expand 380ms var(--ease-confident) both;
+  }
+}
+
+@keyframes sidebar-expand {
+  from { width: 20rem; }
+  to { width: 28.75rem; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .rise-in {
     animation: rise-in 650ms var(--ease-confident) both;
@@ -404,6 +421,15 @@ select {
     0 0 30px 6px rgb(114 230 224 / 0.26);
 }
 
+/* Anillo del camino de Johnson: oro, no teal. La seleccion edita, el
+   camino informa; no pueden compartir color. */
+.star-path {
+  border: 1px solid rgb(255 214 132 / 0.8);
+  box-shadow:
+    0 0 0 1px rgb(255 214 132 / 0.22),
+    0 0 30px 6px rgb(255 214 132 / 0.3);
+}
+
 /* Pastilla opaca en vez de text-shadow: la etiqueta vive DEBAJO de la
    estrella y a veces cae sobre el halo de otra. Un velo plano la
    mantiene legible sininventar otro objeto. */
@@ -466,6 +492,35 @@ select {
 }
 
 /* ---------------------------------------------------------------------------
+   EL ÁRBOL (página de árboles)
+
+   La escena del árbol vive en su propio panel: un fondo más profundo que
+   el resto de los paneles, con dos velos de nebulosa suaves y el mismo
+   campo de estrellas del vacío, muy bajado, para que los nodos se lean
+   sin competir con el sidebar. El anillo de la visita actual respira:
+   mientras recorrés con el slider, el ojo encuentra el nodo activo
+   aunque el árbol sea grande.
+   --------------------------------------------------------------------------- */
+
+.tree-stage {
+  background:
+    radial-gradient(90% 65% at 50% 0%, rgb(64 92 200 / 0.16), transparent 62%),
+    radial-gradient(70% 60% at 84% 94%, rgb(20 132 138 / 0.12), transparent 66%),
+    linear-gradient(180deg, #050a17 0%, #081020 100%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tree-visit-ring {
+    animation: tree-visit 1700ms ease-in-out infinite;
+  }
+}
+
+@keyframes tree-visit {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.95; }
+}
+
+/* ---------------------------------------------------------------------------
    SUPERFICIES DE REACT FLOW
 
    La libreria trae sus propios colores: los botones de zoom son BLANCOS
@@ -514,6 +569,7 @@ select {
   .field-nebula-b,
   .star-core,
   .star-ring,
+  .tree-visit-ring,
   .beam-pulse {
     animation: none;
   }

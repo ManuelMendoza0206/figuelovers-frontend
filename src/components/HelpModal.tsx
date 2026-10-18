@@ -61,8 +61,8 @@ const ALGORITHM_ITEMS: HelpItem[] = [
   {
     icon: <GitBranch className="h-4 w-4" />,
     title: 'Árboles binarios de búsqueda',
-    description: 'Inserta valores individuales o genera valores aleatorios para construir y recorrer un ABB.',
-    detail: 'En un ABB, los valores menores se insertan a la izquierda y los mayores a la derecha. Pre-order visita raíz–izquierda–derecha; in-order, izquierda–raíz–derecha; post-order, izquierda–derecha–raíz (para la raíz 2 con hijos 1 y 3: 2,1,3; 1,2,3; 1,3,2). También puedes reconstruir con in-order + pre-order o in-order + post-order. Pre-order + post-order no se admite porque no determina un árbol único. Las cadenas deben ser no vacías, tener valores únicos y contener el mismo conjunto; el sistema informa los faltantes/sobrantes o si los órdenes son incompatibles. Un árbol reconstruido puede ser binario general, no necesariamente ABB. Se guarda en el grafo como aristas dirigidas padre→hijo y metadatos treeValue/treeSide en node.data, así se conserva al guardar/exportar el proyecto.',
+    description: 'Inserta valores separados por coma o genera valores aleatorios para construir y recorrer un ABB.',
+    detail: 'En un ABB, los valores menores se insertan a la izquierda y los mayores a la derecha. Pre-order visita raíz–izquierda–derecha; in-order, izquierda–raíz–derecha; post-order, izquierda–derecha–raíz (para la raíz 2 con hijos 1 y 3: 2,1,3; 1,2,3; 1,3,2). También puedes cargar el árbol desde el grafo del editor; si ese grafo no cumple la propiedad de búsqueda, se conserva como árbol binario general. Se guarda en el grafo como aristas dirigidas padre→hijo y metadatos treeValue/treeSide en node.data, así se conserva al guardar/exportar el proyecto.',
   },
 ];
 

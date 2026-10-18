@@ -28,6 +28,7 @@ import {
   BEAM_OPACITY,
   BEAM_OPACITY_DIMMED,
   BRAND_COLOR,
+  PATH_COLOR,
   createEdgeStyle,
   EDGE_STROKE_WIDTH,
 } from '../lib/graphEdge';
@@ -40,6 +41,12 @@ import {
     NO_SELF_LOOP,
 } from '../lib/graphGeometry';
 import type { GraphTool } from '../types/graph';
+import {
+  buildJohnsonGraphSignature,
+  getJohnsonPath,
+  getJohnsonPathEdgeIds,
+  useJohnsonResult,
+} from '../store/useJohnsonResult';
 import { GraphHud } from './GraphHud';
 import GraphToolbar from './GraphToolbar';
 import { graphEdgeTypes, graphNodeTypes } from './graphFlowTypes';
@@ -61,6 +68,35 @@ const CanvasContent: React.FC = () => {
     setSelectedElement,
   } = useGraphStore();
 
+  const johnsonResult = useJohnsonResult((state) => state.result);
+  const johnsonSignature = useJohnsonResult((state) => state.graphSignature);
+  const johnsonSource = useJohnsonResult((state) => state.source);
+  const johnsonTarget = useJohnsonResult((state) => state.target);
+
+  /**
+   * Camino resaltado de Johnson, derivado y no guardado en el grafo.
+   *
+   * Solo existe mientras la firma coincide con el grafo actual: si
+   * agregas, borras o cambias un peso, el resultado deja de ser valido
+   * y el resaltado se apaga solo. Asi no secuestra la seleccion que usa
+   * el panel de propiedades.
+   */
+  const pathHighlight = useMemo(() => {
+    if (!johnsonResult || !johnsonSignature) return null;
+    if (johnsonSignature !== buildJohnsonGraphSignature(nodes, edges)) {
+      return null;
+    }
+    if (johnsonResult.has_negative_cycle) return null;
+
+    const path = getJohnsonPath(johnsonResult, johnsonSource, johnsonTarget);
+    if (path.length < 2) return null;
+
+    return {
+      nodeIds: new Set(path),
+      edgeIds: new Set(getJohnsonPathEdgeIds(edges, path)),
+    };
+  }, [johnsonResult, johnsonSignature, johnsonSource, johnsonTarget, nodes, edges]);
+
   const nodeMap = useMemo(() => {
     const map: Map<string, AppNode> = new Map();
     nodes.forEach((node) => map.set(node.id, node));
@@ -68,8 +104,20 @@ const CanvasContent: React.FC = () => {
   }, [nodes]);
 
   const displayNodes = useMemo(
-    () => nodes.map((node) => ({ ...node, type: 'circularGraphNode' })),
-    [nodes]
+    () =>
+      nodes.map((node) => {
+        const isPathNode = pathHighlight?.nodeIds.has(node.id) ?? false;
+        if (!isPathNode) {
+          return { ...node, type: 'circularGraphNode' };
+        }
+
+        return {
+          ...node,
+          type: 'circularGraphNode',
+          data: { ...node.data, isPathNode: true },
+        };
+      }),
+    [nodes, pathHighlight]
   );
 
   const displayEdges = useMemo(
@@ -93,7 +141,11 @@ const CanvasContent: React.FC = () => {
           ? edge.source === selectedNode.id || edge.target === selectedNode.id
           : selectedEdge?.id === edge.id;
 
-        const isLit = !selectedNode && !selectedEdge ? true : touchesSelection;
+        const baseLit = !selectedNode && !selectedEdge ? true : touchesSelection;
+        const isPath = pathHighlight?.edgeIds.has(edge.id) ?? false;
+        // El camino es un resultado y manda sobre la seleccion: si hay
+        // resaltado activo, solo el camino queda encendido.
+        const isLit = pathHighlight ? isPath : baseLit;
 
         return {
           ...edge,
@@ -110,19 +162,21 @@ const CanvasContent: React.FC = () => {
             loopCenterX: selfLoopInfo.centerX,
             loopCenterY: selfLoopInfo.centerY,
             isLit,
+            isPath,
           },
-          zIndex: edge.selected ? 40 : 20,
+          zIndex: isPath ? 45 : edge.selected ? 40 : 20,
           style: createEdgeStyle({
-            strokeWidth: edge.selected ? 2.4 : EDGE_STROKE_WIDTH,
+            ...(isPath ? { stroke: PATH_COLOR } : {}),
+            strokeWidth: isPath ? 3.2 : edge.selected ? 2.4 : EDGE_STROKE_WIDTH,
             strokeOpacity: isLit
-              ? edge.selected
+              ? edge.selected || isPath
                 ? 1
                 : BEAM_OPACITY
               : BEAM_OPACITY_DIMMED,
           }),
         };
       }),
-    [edges, nodeMap, selectedNode, selectedEdge]
+    [edges, nodeMap, selectedNode, selectedEdge, pathHighlight]
   );
 
   const handleNodeClick: NodeMouseHandler = useCallback(

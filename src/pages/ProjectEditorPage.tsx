@@ -2,11 +2,14 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BackButton } from '../components/BackButton';
 import { GraphCanvas } from '../components/GraphCanvas';
+import { JohnsonFloatingPanel } from '../components/JohnsonFloatingPanel';
 import { Sidebar } from '../components/Sidebar';
+import { useClearSelectionOnUnmount } from '../hooks/useClearSelectionOnUnmount';
 import { useGraphStore } from '../store/useGraphStore';
 import { getProject, saveProjectGraph } from '../utils/projectStorage';
 
 const ProjectEditorPage: React.FC = () => {
+  useClearSelectionOnUnmount();
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { nodes, edges, loadGraph } = useGraphStore();
@@ -37,6 +40,7 @@ const ProjectEditorPage: React.FC = () => {
           <p className="mt-1 font-display text-lg font-semibold text-ink">Mapa de conexiones</p>
         </div>
         <GraphCanvas />
+        <JohnsonFloatingPanel />
       </main>
       <aside className="h-full shrink-0" aria-label="Panel de propiedades">
         <Sidebar />
