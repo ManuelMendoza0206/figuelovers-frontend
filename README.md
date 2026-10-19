@@ -31,6 +31,8 @@ Aplicación web para crear y explorar grafos, consultar sus representaciones y r
 | **Árbol binario de búsqueda** | Permite insertar valores uno a uno o generar hasta 31 valores aleatorios únicos de 1 a 99, mostrar pre-order/in-order/post-order y reconstruir con in-order + pre-order o in-order + post-order. También puede cargar un árbol binario desde el grafo del editor y enviar el árbol al grafo. |
 | **Dijkstra y BFS** | Los endpoints existen en la API, pero actualmente devuelven respuestas simuladas y no ejecutan esos algoritmos sobre el grafo. No se presentan como funciones operativas de la interfaz. |
 
+Las entradas, los resultados y el paso seleccionado de Asignación y Esquina Noroeste se conservan al navegar entre secciones durante la misma sesión de la página. Se reinician al recargar el navegador.
+
 La asignación se puede iniciar con una matriz editable o traducir desde el grafo actual. En esa traducción, las conexiones aportan sus pesos y las celdas sin conexión empiezan en `0`; revisa y edita esas celdas antes de calcular, porque el cero puede ser seleccionado como el costo mínimo.
 
 En Esquina Noroeste, asigna a cada nodo el rol de origen o destino y completa su oferta o demanda. La matriz conserva `null` para las rutas bloqueadas (se muestran como `—`), nunca como costo cero. Si se requiere balancear oferta y demanda, el servicio añade un nodo ficticio con costo cero. Los atributos de rol, oferta, demanda y árbol se guardan dentro de `node.data`.

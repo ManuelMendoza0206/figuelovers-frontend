@@ -5,7 +5,7 @@ import { BackButton } from '../components/BackButton';
 import { Sidebar } from '../components/Sidebar';
 import { GraphServiceAPI, isCanceled } from '../services/api';
 import { useGraphStore } from '../store/useGraphStore';
-import type { NorthwestResult } from '../types/graph';
+import { useNorthwestStore } from '../store/useNorthwestStore';
 import { Button } from '../ui/Button';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { translateGraphToNorthwest } from '../utils/graphToNorthwest';
@@ -59,9 +59,8 @@ const NorthwestPage: React.FC = () => {
   const location = useLocation();
   const returnTo = new URLSearchParams(location.search).get('from') ?? '/editor';
   const { nodes, edges, updateNodeData } = useGraphStore();
-  const [result, setResult] = useState<NorthwestResult | null>(null);
-  const [resultSignature, setResultSignature] = useState<string | null>(null);
-  const [stepIndex, setStepIndex] = useState(0);
+  const { result, resultSignature, stepIndex, setResult, setStepIndex } =
+    useNorthwestStore();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const request = useRef<AbortController | null>(null);
@@ -149,9 +148,7 @@ const NorthwestPage: React.FC = () => {
         },
         controller.signal
       );
-      setResult(next);
-      setResultSignature(signature);
-      setStepIndex(0);
+      setResult(next, signature);
     } catch (error: unknown) {
       if (!isCanceled(error)) {
         setErrorMessage(extractApiErrorMessage(error, 'No se pudo ejecutar Esquina Noroeste.'));

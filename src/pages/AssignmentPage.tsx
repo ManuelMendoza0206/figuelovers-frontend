@@ -5,10 +5,10 @@ import { BackButton } from '../components/BackButton';
 import { Sidebar } from '../components/Sidebar';
 import { error as showError } from '../hooks/useToast';
 import { GraphServiceAPI, isCanceled } from '../services/api';
-import type { AssignmentResultData } from '../types/graph';
 import { extractApiErrorMessage } from '../utils/apiError';
 import type { GraphAssignmentTransfer } from '../utils/graphToMatrix';
 import { translateGraphToCostMatrix } from '../utils/graphToMatrix';
+import { useAssignmentStore } from '../store/useAssignmentStore';
 import { Button } from '../ui';
 
 // Tope de dimension. Debe coincidir con el size guard del backend
@@ -18,9 +18,6 @@ const MAX_DIMENSION = 20;
 
 const clampDimension = (value: number): number =>
   Math.min(MAX_DIMENSION, Math.max(1, Math.floor(value) || 1));
-
-const makeMatrix = (rows: number, cols: number): number[][] =>
-  Array.from({ length: rows }, () => Array.from({ length: cols }, () => 1));
 
 /**
  * Dos jerarquias de input, una sola fuente de verdad.
@@ -62,18 +59,34 @@ const AssignmentPage: React.FC = () => {
   const graphTransfer = (location.state as { graphTransfer?: GraphAssignmentTransfer } | null)
     ?.graphTransfer;
 
-  const [rows, setRows] = useState(3);
-  const [cols, setCols] = useState(3);
-  const [maximize, setMaximize] = useState(false);
-  const [matrix, setMatrix] = useState<number[][]>(() => makeMatrix(3, 3));
-  const [rowLabels, setRowLabels] = useState(['Trabajador 1', 'Trabajador 2', 'Trabajador 3']);
-  const [colLabels, setColLabels] = useState(['Tarea A', 'Tarea B', 'Tarea C']);
-  const [result, setResult] = useState<AssignmentResultData | null>(null);
+  const {
+    rows,
+    cols,
+    maximize,
+    matrix,
+    rowLabels,
+    colLabels,
+    result,
+    resultSignature,
+    showProcess,
+    currentStep,
+    boardSource,
+    appliedBoard,
+    setRows,
+    setCols,
+    setMaximize,
+    setMatrix,
+    setRowLabels,
+    setColLabels,
+    setResult,
+    setResultSignature,
+    setShowProcess,
+    setCurrentStep,
+    setBoardSource,
+    setAppliedBoard,
+  } = useAssignmentStore();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showProcess, setShowProcess] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [boardSource, setBoardSource] = useState(false);
 
   /** Request en vuelo, para poder abortarlo al relanzar el calculo. */
   const abortInFlight = useRef<AbortController | null>(null);
@@ -116,8 +129,6 @@ const AssignmentPage: React.FC = () => {
     [matrix, rows, cols, rowLabels, colLabels, maximize]
   );
 
-  const [resultSignature, setResultSignature] = useState<string | null>(null);
-
   const freshResult =
     result !== null && resultSignature === inputSignature ? result : null;
 
@@ -132,12 +143,14 @@ const AssignmentPage: React.FC = () => {
   const appliedSignature = useMemo(
     () =>
       boardTranslation?.ok
-        ? JSON.stringify(boardTranslation.translation.matrix)
+        ? JSON.stringify({
+            matrix: boardTranslation.translation.matrix,
+            rowLabels: boardTranslation.translation.rowLabels,
+            colLabels: boardTranslation.translation.colLabels,
+          })
         : null,
     [boardTranslation]
   );
-
-  const [appliedBoard, setAppliedBoard] = useState<string | null>(null);
 
   if (boardTranslation?.ok && appliedSignature !== appliedBoard) {
     const { matrix: next, rowLabels: nextRows, colLabels: nextCols } =
@@ -150,6 +163,7 @@ const AssignmentPage: React.FC = () => {
     setRows(nextRows.length);
     setCols(nextCols.length);
     setResult(null);
+    setResultSignature(null);
     setShowProcess(false);
     setCurrentStep(0);
     setBoardSource(true);
