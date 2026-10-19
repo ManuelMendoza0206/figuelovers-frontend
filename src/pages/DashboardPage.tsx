@@ -1,9 +1,10 @@
-import { ArrowRight, Plus, RefreshCw, Star, Trash2 } from 'lucide-react';
+import { ArrowRight, Plus, RefreshCw, Sparkles, Star, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BackButton } from '../components/BackButton';
 import { ProjectNameDialog } from '../components/ProjectNameDialog';
 import { UniverseNav } from '../components/UniverseNav';
+import { isConstellationProject } from '../types/project';
 import type { ProjectSnapshot } from '../types/project';
 import { createProject, deleteProject, listProjects, renameProject } from '../utils/projectStorage';
 
@@ -48,9 +49,17 @@ const DashboardPage: React.FC = () => {
             <h1 className="font-display text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Tus galaxias</h1>
             <p className="mt-3 max-w-xl text-sm leading-7 text-ink-muted">Cada proyecto es un sistema completo: constelaciones, rutas y misiones en un mismo lugar.</p>
           </div>
-          <button type="button" onClick={() => setIsNameDialogOpen(true)} className="flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-[#07101f] transition hover:bg-brand-hover">
-            <Plus className="h-4 w-4" /> Añadir galaxia
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/constellations"
+              className="flex items-center justify-center gap-2 rounded-full border border-mission/40 px-5 py-3 text-sm font-bold text-mission transition hover:bg-mission/10"
+            >
+              <Sparkles className="h-4 w-4" /> Constelaciones
+            </Link>
+            <button type="button" onClick={() => setIsNameDialogOpen(true)} className="flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-[#07101f] transition hover:bg-brand-hover">
+              <Plus className="h-4 w-4" /> Añadir galaxia
+            </button>
+          </div>
         </div>
 
         {projects.length === 0 ? (
@@ -59,10 +68,15 @@ const DashboardPage: React.FC = () => {
               <Star className="h-7 w-7" />
             </div>
             <h2 className="font-display text-2xl font-semibold">El mapa está esperando una primera señal</h2>
-            <p className="mt-3 max-w-md text-sm leading-7 text-ink-muted">Crea una galaxia para comenzar a conectar estrellas y explorar sus rutas.</p>
-            <button type="button" onClick={() => setIsNameDialogOpen(true)} className="mt-7 flex items-center gap-2 rounded-full border border-brand/40 px-4 py-2.5 text-sm font-bold text-brand transition hover:bg-brand/10">
-              Iniciar exploración <ArrowRight className="h-4 w-4" />
-            </button>
+            <p className="mt-3 max-w-md text-sm leading-7 text-ink-muted">Crea una galaxia para comenzar a conectar estrellas y explorar sus rutas, o abre una constelación famosa del catálogo.</p>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <button type="button" onClick={() => setIsNameDialogOpen(true)} className="flex items-center gap-2 rounded-full border border-brand/40 px-4 py-2.5 text-sm font-bold text-brand transition hover:bg-brand/10">
+                Iniciar exploración <ArrowRight className="h-4 w-4" />
+              </button>
+              <Link to="/constellations" className="flex items-center gap-2 rounded-full border border-mission/40 px-4 py-2.5 text-sm font-bold text-mission transition hover:bg-mission/10">
+                Ver constelaciones <Sparkles className="h-4 w-4" />
+              </Link>
+            </div>
           </section>
         ) : (
           <section className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -73,6 +87,14 @@ const DashboardPage: React.FC = () => {
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#ffd684]/25 bg-[#ffd684]/10 text-[#ffd684]">
                     <Star className="h-5 w-5" />
                   </div>
+                  {isConstellationProject(project) && (
+                    <span
+                      className="rounded-full border border-mission/30 bg-mission/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-mission"
+                      title="Proyecto creado desde el catálogo: su forma es fija."
+                    >
+                      Constelación
+                    </span>
+                  )}
                   <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">galaxy / {String(index + 1).padStart(2, '0')}</span>
                 </div>
                 <h2 className="relative mt-7 truncate font-display text-xl font-semibold">{project.name}</h2>

@@ -1,5 +1,6 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
+import { EDITOR_EVENTS } from '../lib/editorEvents';
 import { HelpModal } from './HelpModal';
 
 describe('HelpModal algorithm details', () => {
@@ -21,5 +22,63 @@ describe('HelpModal algorithm details', () => {
     fireEvent.click(treeCard);
     expect(treeCard.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText(/Pre-order visita raíz/)).toBeTruthy();
+  });
+});
+
+describe('HelpModal - atajos del lienzo', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('se abre y se cierra cuando el lienzo pide ayuda (atajo H)', () => {
+    render(<HelpModal />);
+
+    expect(screen.queryByText('Rutas interestelares (Johnson)')).toBeNull();
+
+    const pedirAyuda = () =>
+      act(() => {
+        window.dispatchEvent(new CustomEvent(EDITOR_EVENTS.openHelp));
+      });
+
+    pedirAyuda();
+    expect(screen.getByText('Rutas interestelares (Johnson)')).toBeTruthy();
+
+    pedirAyuda();
+    expect(screen.queryByText('Rutas interestelares (Johnson)')).toBeNull();
+  });
+
+  it('lista la tecla de cada herramienta', () => {
+    render(<HelpModal />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
+
+    expect(screen.getByText('Abrir esta ayuda')).toBeTruthy();
+    expect(screen.getByText('Limpiar todo')).toBeTruthy();
+    expect(screen.getByText('Volver a Interactuar')).toBeTruthy();
+  });
+});
+
+describe('HelpModal - constelaciones', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('explica qué son, qué se puede editar y cómo se usan los algoritmos', () => {
+    render(<HelpModal />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
+
+    const card = screen.getByRole('button', { name: /Constelaciones famosas/ });
+    expect(card.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(card);
+    expect(card.getAttribute('aria-expanded')).toBe('true');
+
+    // Resumen visible siempre (sin desplegar también se lee).
+    expect(screen.getByText(/Plantillas de figuras reales del cielo/)).toBeTruthy();
+
+    // Explicación desplegable.
+    expect(screen.getByText(/La forma es fija/)).toBeTruthy();
+    expect(screen.getByText(/Johnson exige aristas dirigidas/)).toBeTruthy();
+    expect(screen.getByText('Restaurar original')).toBeTruthy();
+    expect(screen.getByText(/JSON normal/)).toBeTruthy();
   });
 });

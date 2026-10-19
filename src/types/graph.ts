@@ -245,4 +245,13 @@ export type AppEdge = import('reactflow').Edge<AppEdgeData>;
 // HERRAMIENTAS DEL CANVAS
 // ==========================================
 
-export type GraphTool = 'interact' | 'connect';
+/**
+ * Herramienta activa del lienzo.
+ *
+ * Todas son modos, no acciones puntuales: el clic del usuario es lo que
+ * finalmente ejecuta (añadir crea donde se hace clic; eliminar pide
+ * confirmacion sobre lo que se hizo clic). 'add' y 'delete' existen porque
+ * antes "añadir" metia un nodo en una posicion aleatoria y "eliminar"
+ * vivia escondido en dos botones separados del panel lateral.
+ */
+export type GraphTool = 'interact' | 'connect' | 'add' | 'delete';

@@ -253,34 +253,65 @@ export const parseGraphFile = (
 
 
     reader.onload = () => {
-      try {
-        const parsed = JSON.parse(
-          reader.result as string
-        );
-
-
-        if (!isValidGraphFileShape(parsed)) {
-          reject(
-            new GraphFileParseError(
-              'El archivo no tiene el formato esperado de un grafo (falta "graph.nodes" o "graph.edges").'
-            )
-          );
-          return;
-        }
-
-
-        resolve(parsed);
-      } catch {
-        reject(
-          new GraphFileParseError(
-            'El archivo no contiene un JSON válido.'
-          )
-        );
-      }
+      parseGraphText(reader.result as string, file.name).then(
+        resolve,
+        reject
+      );
     };
 
 
     reader.readAsText(file);
+  });
+};
+
+
+/**
+ * Mismo validador que `parseGraphFile`, pero sobre texto.
+ *
+ * Existe porque las constelaciones del catalogo se TRAEN por fetch y no
+ * hay un File que meter al FileReader. Unificar los dos caminos es lo
+ * que garantiza que un JSON que vive en public/ pase por exactamente la
+ * misma validacion que uno elegido a mano desde el importador.
+ */
+export const parseGraphText = (
+  text: string,
+  fileName = 'grafo.json'
+): Promise<GraphFileSchema> => {
+  return new Promise((resolve, reject) => {
+    if (!fileName.toLowerCase().endsWith('.json')) {
+      reject(
+        new GraphFileParseError(
+          'El archivo debe tener extensión .json'
+        )
+      );
+      return;
+    }
+
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      reject(
+        new GraphFileParseError(
+          'El archivo no contiene un JSON válido.'
+        )
+      );
+      return;
+    }
+
+
+    if (!isValidGraphFileShape(parsed)) {
+      reject(
+        new GraphFileParseError(
+          'El archivo no tiene el formato esperado de un grafo (falta "graph.nodes" o "graph.edges").'
+        )
+      );
+      return;
+    }
+
+
+    resolve(parsed);
   });
 };
 

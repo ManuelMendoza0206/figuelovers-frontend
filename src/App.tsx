@@ -22,6 +22,7 @@ const MainLayout = lazy(() =>
 
 const EditorPage = lazy(() => import('./pages/EditorPage'));
 const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'));
+const ConstellationsPage = lazy(() => import('./pages/ConstellationsPage'));
 
 const JohnsonPage = lazy(() => import('./pages/JohnsonPage'));
 const AssignmentPage = lazy(() => import('./pages/AssignmentPage'));
@@ -104,6 +105,7 @@ const App: React.FC = () => {
               <Route element={<MainLayout />}>
                 <Route path="editor" element={<EditorPage />} />
                 <Route path="galaxy/:projectId" element={<ProjectEditorPage />} />
+                <Route path="constellations" element={<ConstellationsPage />} />
                 <Route path="johnson" element={<JohnsonPage />} />
                 <Route path="assignment" element={<AssignmentPage />} />
                 <Route path="northwest" element={<NorthwestPage />} />

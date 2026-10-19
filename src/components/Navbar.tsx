@@ -15,6 +15,9 @@ import {
 
 import { extractApiErrorMessage } from '../utils/apiError';
 
+import { EDITOR_EVENTS } from '../lib/editorEvents';
+import { useEditorEvent } from '../hooks/useEditorEvent';
+
 import { AdjListModal } from './AdjListModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { HelpModal } from './HelpModal';
@@ -41,9 +44,17 @@ export const Navbar: React.FC = () => {
     edges,
     validationData,
     setValidationData,
-    loadGraph,
+    replaceGraph,
     clearGraph,
+    structureLocked,
   } = useGraphStore();
+
+  /**
+   * Motivo compartido de los botones deshabilitados con una constelación
+   * abierta. El bloqueo real vive en el store; esto solo lo explica.
+   */
+  const LOCKED_TITLE =
+    'Constelación protegida: su forma es fija, así que limpiar o cargar un grafo por encima queda deshabilitado.';
 
   const [isFetchingMatrix, setIsFetchingMatrix] = useState(false);
   const [isFetchingList, setIsFetchingList] = useState(false);
@@ -142,7 +153,15 @@ export const Navbar: React.FC = () => {
       }
 
       const { nodes: flowNodes, edges: flowEdges } = graphPayloadToFlow(response.data.graph);
-      loadGraph(flowNodes, flowEdges);
+
+      // replaceGraph y no loadGraph: reemplazar TODO el grafo con una
+      // constelación abierta la pisaría. El store lo rechaza; el aviso
+      // evita que el usuario se pregunte por qué no pasó nada.
+      if (!replaceGraph(flowNodes, flowEdges)) {
+        error('No se importó: la constelación abierta está protegida (su forma es fija).');
+        return;
+      }
+
       success('Grafo importado correctamente.');
     } catch (err: unknown) {
       error(describeError(err, 'No se pudo importar el archivo.'));
@@ -152,6 +171,11 @@ export const Navbar: React.FC = () => {
   };
 
   const handleClearGraph = () => {
+    if (structureLocked) {
+      error('La constelación está protegida: su forma es fija y no se puede limpiar.');
+      return;
+    }
+
     if (nodes.length === 0 && edges.length === 0) {
       error('El lienzo ya está vacío.');
       return;
@@ -160,8 +184,18 @@ export const Navbar: React.FC = () => {
     setIsClearDialogOpen(true);
   };
 
+  // Atajo O del lienzo: llega como pedido de edicion y abre EXACTAMENTE
+  // el mismo dialogo que el boton "Limpiar Todo", con la misma validacion
+  // de lienzo vacio. El atajo no vive en el Navbar a proposito: solo
+  // existe cuando la constelacion esta montada.
+  useEditorEvent(EDITOR_EVENTS.requestClear, handleClearGraph);
+
   const confirmClearGraph = () => {
-    clearGraph();
+    if (!clearGraph()) {
+      error('La constelación está protegida: su forma es fija y no se puede limpiar.');
+      return;
+    }
+
     setIsMatrixModalOpen(false);
     setIsAdjListModalOpen(false);
     success('Grafo limpiado correctamente.');
@@ -172,7 +206,7 @@ export const Navbar: React.FC = () => {
     <>
       <header className="relative z-30 w-full border-b border-white/10 bg-[#070d1dcc] shadow-sm backdrop-blur-xl">
         <div className="flex min-h-16 w-full items-center px-4 py-2 sm:px-6 lg:px-8">
-          
+
           {/* 1. Logo y Título */}
           <div className="flex shrink-0 items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-brand/30 shadow-[0_0_24px_rgba(114,230,224,0.16)]">
@@ -189,12 +223,13 @@ export const Navbar: React.FC = () => {
 
           {/* 2. Separador y Botón Limpiar (Izquierda) */}
           <div className="mx-6 hidden h-8 w-px bg-white/10 sm:block" />
-          
+
           <IconButton
             onClick={handleClearGraph}
-            title="Eliminar todo el grafo"
+            disabled={structureLocked}
+            title={structureLocked ? LOCKED_TITLE : 'Eliminar todo el grafo'}
             aria-label="Eliminar todo el grafo"
-            className="hidden sm:flex items-center gap-2 rounded-md border border-[#ff9f80]/30 bg-[#ff9f80]/10 px-3 py-1.5 text-[#ffb09a] transition-colors hover:bg-[#ff9f80]/20"
+            className="hidden sm:flex items-center gap-2 rounded-md border border-[#ff9f80]/30 bg-[#ff9f80]/10 px-3 py-1.5 text-[#ffb09a] transition-colors hover:bg-[#ff9f80]/20 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Trash2 className="h-4 w-4" />
             <span className="font-semibold">Limpiar Todo</span>
@@ -205,7 +240,7 @@ export const Navbar: React.FC = () => {
 
           {/* 3. Acciones del lado derecho */}
           <div className="flex shrink-0 items-center gap-4">
-            
+
             {/* Vistas (Teal) */}
             <div className="flex items-center gap-2">
               <HelpModal />
@@ -238,8 +273,8 @@ export const Navbar: React.FC = () => {
 
             {/* Archivos (Gris/Teal claro) */}
             <div className="flex items-center gap-2">
-              <IconButton 
-                onClick={handleExportJson} 
+              <IconButton
+                onClick={handleExportJson}
                 title="Guardar grafo en JSON"
                 aria-label="Guardar grafo en JSON"
                 className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-ink-muted transition-colors hover:bg-brand-muted hover:text-ink"
@@ -248,12 +283,12 @@ export const Navbar: React.FC = () => {
                 <span className="hidden sm:inline font-semibold">Guardar JSON</span>
               </IconButton>
 
-              <IconButton 
-                onClick={handleImportClick} 
-                disabled={isImporting} 
-                title="Cargar grafo desde JSON"
+              <IconButton
+                onClick={handleImportClick}
+                disabled={isImporting || structureLocked}
+                title={structureLocked ? LOCKED_TITLE : 'Cargar grafo desde JSON'}
                 aria-label="Cargar grafo desde JSON"
-                className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-ink-muted transition-colors hover:bg-brand-muted hover:text-ink"
+                className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-ink-muted transition-colors hover:bg-brand-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isImporting ? <Spinner /> : <Upload className="h-4 w-4 text-teal-700" />}
                 <span className="hidden sm:inline font-semibold">Cargar JSON</span>

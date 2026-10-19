@@ -1,6 +1,8 @@
-import { ArrowRightLeft, ChevronDown, Crosshair, GitBranch, HelpCircle, MousePointerClick, Orbit, Plus, Route, Trash2, Truck } from 'lucide-react';
+import { ArrowRightLeft, ChevronDown, Crosshair, GitBranch, HelpCircle, Keyboard, MousePointerClick, Orbit, Plus, Route, Sparkles, Trash2, Truck } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { IconButton } from '../ui';
+import { EDITOR_EVENTS } from '../lib/editorEvents';
+import { useEditorEvent } from '../hooks/useEditorEvent';
 
 interface HelpItem {
   icon: React.ReactNode;
@@ -9,6 +11,20 @@ interface HelpItem {
   detail?: string;
   accent?: 'brand' | 'error';
 }
+
+/**
+ * Atajos del lienzo. La fuente de verdad del mapeo es GraphToolbar
+ * (tecla junto a cada boton); esto es solo la vista impresa.
+ */
+const SHORTCUTS: { key: string; label: string }[] = [
+  { key: 'Q', label: 'Interactuar' },
+  { key: 'W', label: 'Conectar' },
+  { key: 'E', label: 'Añadir nodo' },
+  { key: 'P', label: 'Eliminar' },
+  { key: 'H', label: 'Abrir esta ayuda' },
+  { key: 'O', label: 'Limpiar todo' },
+  { key: 'Esc', label: 'Volver a Interactuar' },
+];
 
 const HELP_ITEMS: HelpItem[] = [
   {
@@ -24,7 +40,7 @@ const HELP_ITEMS: HelpItem[] = [
   {
     icon: <Plus className="h-4 w-4" />,
     title: 'Crear nodos',
-    description: 'Usa "Añadir nodo" o haz doble clic sobre una zona vacía del lienzo.',
+    description: 'Activa Añadir nodo: el cursor se convierte en un + y la estrella nace exactamente donde hagas clic. En modo Interactuar, el doble clic sobre el lienzo vacío también crea una estrella.',
   },
   {
     icon: <ArrowRightLeft className="h-4 w-4" />,
@@ -34,7 +50,7 @@ const HELP_ITEMS: HelpItem[] = [
   {
     icon: <Trash2 className="h-4 w-4" />,
     title: 'Eliminar',
-    description: 'Selecciona un elemento y utiliza el botón Eliminar del panel lateral.',
+    description: 'Activa Eliminar: el cursor se convierte en una × y, al hacer clic en una estrella o en una conexión, aparece la confirmación de ese elemento. Un único botón sirve para los dos.',
     accent: 'error',
   },
 ];
@@ -69,15 +85,59 @@ const ALGORITHM_ITEMS: HelpItem[] = [
 const UNIVERSE_ITEMS: HelpItem[] = [
   { icon: <Orbit className="h-4 w-4" />, title: 'Universo observable', description: 'La marca y el punto de entrada a toda la experiencia.' },
   { icon: <Orbit className="h-4 w-4" />, title: 'Red cósmica', description: 'El dashboard donde cada galaxia representa un proyecto guardado localmente.' },
-  { icon: <Orbit className="h-4 w-4" />, title: 'Galaxia y constelación', description: 'Una galaxia es un proyecto; su constelación es el grafo formado por estrellas y líneas.' },
+  { icon: <Orbit className="h-4 w-4" />, title: 'Galaxia y constelación', description: 'Una galaxia es un proyecto; su constelación es el grafo formado por estrellas y líneas. No confundir con «Constelaciones», la sección de figuras reales del cielo.' },
   { icon: <Orbit className="h-4 w-4" />, title: 'Rutas y misiones', description: 'Las conexiones representan viajes y la asignación representa recursos enviados a destinos planetarios.' },
 ];
+
+/**
+ * Qué son y qué se puede hacer con una constelación. Va desplegable como
+ * los algoritmos porque es el unico tema que rompe una regla del editor
+ * (la forma no se toca) y esa regla necesita explicación, no asumirla.
+ */
+const CONSTELLATION_DETAIL: React.ReactNode = (
+  <>
+    <p>
+      Son plantillas de figuras reales del cielo (Orión, Osa Mayor, Casiopea…) que viven
+      en <code className="font-mono text-ink">public/constellations/</code> y se abren
+      desde la sección <strong>Constelaciones</strong>. Al abrirlas se COPIAN a un
+      proyecto propio: por eso el archivo original nunca se toca y puedes experimentar
+      sin miedo a romper la figura.
+    </p>
+    <p className="mt-2">
+      <strong className="text-ink">La forma es fija</strong>: no se pueden agregar,
+      mover ni eliminar estrellas, ni crear ni eliminar conexiones. Es lo que hace que
+      la figura siga siendo reconocible; el bloqueo vive en el estado del editor, no solo
+      en los botones.
+    </p>
+    <p className="mt-2">
+      <strong className="text-ink">Sí puedes</strong>: renombrar cada estrella, cambiar
+      el peso de cada conexión, marcar todas como dirigidas (o quitarles la dirección)
+      con los botones del editor, invertir una arista y definir los datos que usan los
+      algoritmos (roles, oferta y demanda).
+    </p>
+    <p className="mt-2">
+      <strong className="text-ink">Con los algoritmos</strong>: Johnson exige aristas
+      dirigidas, así que usa «Todas dirigidas» antes de entrar a Rutas interestelares.
+      Asignación, Esquina Noroeste y las matrices usan los pesos y los roles que definas.
+      Si te equivocaste, <strong className="text-ink">Restaurar original</strong> en el
+      editor devuelve la plantilla completa (forma, pesos y nombres).
+    </p>
+    <p className="mt-2">
+      Se exportan como un JSON normal: si lo importás en un lienzo libre, el grafo deja
+      de estar protegido y puedes editarlo como cualquier otro.
+    </p>
+  </>
+);
 
 export const HelpModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedAlgorithm, setExpandedAlgorithm] = useState<number | null>(null);
+  const [isConstellationOpen, setIsConstellationOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Atajo H del lienzo: alterna la ayuda sin importar donde este el mouse.
+  useEditorEvent(EDITOR_EVENTS.openHelp, () => setIsOpen((current) => !current));
 
   useEffect(() => {
     if (!isOpen) return;
@@ -167,7 +227,54 @@ export const HelpModal: React.FC = () => {
                 </div>
               ))}
             </div>
-            <p className="eyebrow mb-3 mt-6 text-[9px]">02 · algoritmos</p>
+            <p className="eyebrow mb-3 mt-6 text-[9px]">02 · atajos de teclado</p>
+            <div className="space-y-1.5">
+              {SHORTCUTS.map((shortcut) => (
+                <div
+                  key={shortcut.key}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2"
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-[11px] text-ink-muted">
+                    <Keyboard aria-hidden className="h-3.5 w-3.5 shrink-0 text-brand" />
+                    <span className="truncate">{shortcut.label}</span>
+                  </span>
+                  <kbd className="shrink-0 rounded border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] font-medium text-ink">
+                    {shortcut.key}
+                  </kbd>
+                </div>
+              ))}
+            </div>
+            <p className="eyebrow mb-3 mt-6 text-[9px]">03 · constelaciones</p>
+            <div className="overflow-hidden rounded-xl border border-mission/25 bg-mission/[0.07]">
+              <button
+                type="button"
+                aria-expanded={isConstellationOpen}
+                aria-controls="constellation-help-detail"
+                onClick={() => setIsConstellationOpen((current) => !current)}
+                className="flex w-full items-start gap-3 p-3 text-left"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-mission/15 text-mission">
+                  <Sparkles className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-extrabold text-ink">Constelaciones famosas</span>
+                  <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-muted">
+                    Plantillas de figuras reales del cielo, con la forma fija: renombrar
+                    estrellas y editar pesos sí; cambiar la figura no.
+                  </span>
+                </span>
+                <ChevronDown className={`mt-1 h-3.5 w-3.5 shrink-0 text-ink-muted transition-transform ${isConstellationOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isConstellationOpen && (
+                <div
+                  id="constellation-help-detail"
+                  className="border-t border-mission/20 px-4 py-3 pl-14 text-[11px] leading-relaxed text-ink-muted"
+                >
+                  {CONSTELLATION_DETAIL}
+                </div>
+              )}
+            </div>
+            <p className="eyebrow mb-3 mt-6 text-[9px]">04 · algoritmos</p>
             <div className="space-y-3">
               {ALGORITHM_ITEMS.map((item, index) => {
                 const expanded = expandedAlgorithm === index;
@@ -197,7 +304,7 @@ export const HelpModal: React.FC = () => {
                 );
               })}
             </div>
-            <p className="eyebrow mb-3 mt-6 text-[9px]">03 · conceptos del universo</p>
+            <p className="eyebrow mb-3 mt-6 text-[9px]">05 · conceptos del universo</p>
             <div className="space-y-3">
               {UNIVERSE_ITEMS.map((item, index) => (
                 <div key={`universe-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3">

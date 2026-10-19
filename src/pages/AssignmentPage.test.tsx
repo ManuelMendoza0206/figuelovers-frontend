@@ -8,6 +8,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AssignmentResultData } from '../types/graph';
+import { useAssignmentStore } from '../store/useAssignmentStore';
 
 /**
  * Regresion de un bug real: AssignmentPage dejaba el resultado en
@@ -98,6 +99,7 @@ const hayResultado = () =>
   screen.queryByText(/resultado de la misión/i) !== null;
 
 beforeEach(() => {
+  useAssignmentStore.getState().reset();
   runAssignment.mockReset();
   runAssignment.mockResolvedValue(resultado);
 });
@@ -105,6 +107,7 @@ beforeEach(() => {
 afterEach(() => {
   // Con `globals: false` en vite.config no hay auto-cleanup.
   cleanup();
+  useAssignmentStore.getState().reset();
   vi.clearAllMocks();
 });
 
@@ -176,6 +179,21 @@ describe('AssignmentPage - el resultado nunca queda obsoleto', () => {
     calcular();
 
     expect(await screen.findByText('99')).toBeTruthy();
+  });
+
+  it('conserva la matriz, el resultado y el paso al volver de otra sección', async () => {
+    const view = montar();
+    calcular();
+    await screen.findByText(/resultado de la misión/i);
+    fireEvent.click(screen.getByRole('button', { name: /ver proceso paso a paso/i }));
+    fireEvent.click(screen.getByRole('button', { name: /siguiente/i }));
+
+    view.unmount();
+    montar();
+
+    expect(screen.getByText(/resultado de la misión/i)).toBeTruthy();
+    expect(screen.getByText(/proceso del algoritmo/i)).toBeTruthy();
+    expect(screen.getByText(/paso 2 de 2/i)).toBeTruthy();
   });
 
   it('el boton queda deshabilitado mientras corre el calculo', async () => {

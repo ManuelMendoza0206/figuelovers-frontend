@@ -13,6 +13,14 @@ Aplicación web para crear y explorar grafos, consultar sus representaciones y r
 - Consultar la matriz y la lista de adyacencia del grafo mediante la API.
 - Guardar metadatos adicionales por nodo en `node.data`; los proyectos locales y el JSON conservan estos datos al importar/exportar.
 
+### Constelaciones
+
+- Galería de figuras reales del cielo (Orión, Osa Mayor, Casiopea) en `/constellations`, con vista previa SVG dibujada desde las posiciones del propio JSON.
+- Cada tarjeta se abre como un proyecto con **forma fija**: en el editor solo se pueden renombrar estrellas, editar pesos y direcciones (y el `node.data` de los algoritmos); agregar, mover o eliminar nodos y aristas, limpiar e importar quedan rechazados **en el store**, no solo deshabilitados en la interfaz.
+- El editor muestra un banner con lo que sí se puede hacer, botones *Todas dirigidas* / *Todas no dirigidas* (útil para Johnson) y *Restaurar original*, que devuelve la plantilla conservando el proyecto.
+- Eliminar el proyecto no afecta a la plantilla (los JSON viven en `public/constellations/` y nunca se modifican) y exportar produce un JSON normal que, al importarlo en un lienzo libre, deja de estar protegido.
+- Véase [Cómo agregar una constelación](#cómo-agregar-una-constelación).
+
 ### Algoritmos implementados
 
 | Algoritmo | Estado y comportamiento |
@@ -22,6 +30,8 @@ Aplicación web para crear y explorar grafos, consultar sus representaciones y r
 | **Esquina Noroeste** | Implementado para problemas de transporte. Traduce nodos con roles de origen/destino, oferta y demanda, y los pesos de las aristas a una matriz de costos. Balancea con filas/columnas ficticias y muestra los pasos; una ruta sin arista es bloqueada y cualquier asignación positiva a ella marca la solución como no factible. Es una solución inicial, no necesariamente óptima. |
 | **Árbol binario de búsqueda** | Permite insertar valores uno a uno o generar hasta 31 valores aleatorios únicos de 1 a 99, mostrar pre-order/in-order/post-order y reconstruir con in-order + pre-order o in-order + post-order. También puede cargar un árbol binario desde el grafo del editor y enviar el árbol al grafo. |
 | **Dijkstra y BFS** | Los endpoints existen en la API, pero actualmente devuelven respuestas simuladas y no ejecutan esos algoritmos sobre el grafo. No se presentan como funciones operativas de la interfaz. |
+
+Las entradas, los resultados y el paso seleccionado de Asignación y Esquina Noroeste se conservan al navegar entre secciones durante la misma sesión de la página. Se reinician al recargar el navegador.
 
 La asignación se puede iniciar con una matriz editable o traducir desde el grafo actual. En esa traducción, las conexiones aportan sus pesos y las celdas sin conexión empiezan en `0`; revisa y edita esas celdas antes de calcular, porque el cero puede ser seleccionado como el costo mínimo.
 
@@ -35,6 +45,7 @@ Los árboles reconstruidos a partir de dos recorridos son árboles binarios gene
 |------|----------|
 | `/` | Página de inicio |
 | `/dashboard` | Gestión de proyectos locales |
+| `/constellations` | Catálogo de constelaciones (plantillas de forma fija) |
 | `/editor` | Editor de grafos |
 | `/galaxy/:projectId` | Editor del grafo de un proyecto guardado |
 | `/johnson` | Cálculo de rutas mínimas entre todos los pares |
@@ -155,7 +166,9 @@ python -m pytest -q
 ```text
 proyecto/
 ├── figuelovers-frontend/
-│   ├── public/                 # Recursos estáticos y grafos de ejemplo
+│   ├── public/
+│   │   ├── constellations/      # Plantillas de constelaciones + index.json (ver más abajo)
+│   │   └── ...                  # Favicon, logo y demás recursos estáticos
 │   └── src/
 │       ├── components/         # Canvas, navegación, formularios y modales
 │       ├── layout/             # Layout compartido del editor y algoritmos
@@ -163,7 +176,7 @@ proyecto/
 │       ├── services/           # Cliente HTTP de la API
 │       ├── store/              # Estado global del grafo (Zustand)
 │       ├── types/              # Tipos del grafo y proyectos
-│       ├── utils/              # Importación/exportación, proyectos, traducciones y layout de árboles
+│       ├── utils/              # Importación/exportación, proyectos, catálogo de constelaciones, traducciones y layout de árboles
 │       └── lib/                # Utilidades de aristas, geometría y folios
 └── figuelovers-backend/
     ├── app/
@@ -173,3 +186,47 @@ proyecto/
     ├── tests/                  # Pruebas de grafos y algoritmos
     └── requirements.txt
 ```
+
+## Constelaciones
+
+La sección `/constellations` es una galería de plantillas: grafos de figuras reales con forma fija que se copian a un proyecto propio al abrirlas. El catálogo es **solo datos estáticos**: no hay código por constelación.
+
+### Cómo agregar una constelación
+
+1. Copia el JSON de la constelación a `public/constellations/<archivo>.json`.
+2. Agrega una entrada a `public/constellations/index.json`.
+
+Con eso aparece la tarjeta nueva: no hay que tocar TypeScript, rutas ni tests (el test del índice real comprueba que cada entrada tenga su archivo).
+
+**Formato de `public/constellations/index.json`** (una lista JSON):
+
+```json
+[
+  {
+    "id": "orion",
+    "name": "Orión",
+    "file": "orion.json",
+    "description": "El cazador celeste: Betelgeuse y Bellatrix marcan los hombros.",
+    "stars": 8
+  }
+]
+```
+
+| Campo | Descripción |
+|-------|-------------|
+| `id` | Identificador único en el catálogo. Es el valor que se guarda como `constellationId` en el proyecto |
+| `name` | Nombre visible en la tarjeta y por defecto del proyecto |
+| `file` | Archivo dentro de `public/constellations/` |
+| `description` | Una o dos líneas en español |
+| `stars` | Número de estrellas (nodos). Debe coincidir con el JSON |
+
+**Requisitos del JSON de la constelación** (los mismos que exige el importador, más reglas estructurales):
+
+- `metadata` (`version`, `name`, `created_at`) y `graph` con `nodes` y `edges`.
+- Ids de nodo únicos y todos los nodos con `position: { x, y }`.
+- Cada arista referencia nodos existentes; sin self-loops ni parejas repetidas.
+- `weight` numérico; una arista **no dirigida** no puede tener peso negativo (el backend la rechaza).
+
+Si un archivo no cumple lo anterior, `src/utils/constellationCatalog.ts` lo rechaza y **solo esa tarjeta** muestra el error; el resto de la galería sigue funcionando. Las plantillas actuales son todas no dirigidas con peso 1: para correr Johnson usa el botón *Todas dirigidas* del editor.
+
+Pruebas relacionadas: `src/utils/constellationCatalog.test.ts` (lee los JSON reales de `public/`), `src/store/useGraphStore.lock.test.ts` (bloqueo), `src/pages/ConstellationsPage.test.tsx` y `src/pages/ProjectEditorPage.constellation.test.tsx`.

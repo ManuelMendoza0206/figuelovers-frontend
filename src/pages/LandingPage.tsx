@@ -19,8 +19,11 @@ const LandingPage: React.FC = () => (
           <Link to="/dashboard" className="group flex items-center gap-3 rounded-full bg-brand px-5 py-3 text-sm font-extrabold text-[#07101f] transition hover:bg-brand-hover">
             Entrar al observatorio <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
+          <Link to="/constellations" className="flex items-center gap-2 rounded-full border border-mission/40 px-5 py-3 text-sm font-bold text-mission transition hover:bg-mission/10">
+            <Sparkles className="h-4 w-4" /> Ver constelaciones
+          </Link>
           <Link to="/editor" className="rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-ink-muted transition hover:border-brand/40 hover:text-ink">
-            Abrir constelación
+            Abrir lienzo
           </Link>
         </div>
         <div className="mt-12 flex flex-wrap gap-6 text-xs text-ink-subtle">

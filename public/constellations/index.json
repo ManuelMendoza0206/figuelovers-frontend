@@ -1,0 +1,23 @@
+[
+  {
+    "id": "orion",
+    "name": "Orión",
+    "file": "orion.json",
+    "description": "El cazador celeste: Betelgeuse y Bellatrix marcan los hombros y el cinturón de tres estrellas alinea el centro. Es la constelación más reconocible del cielo invernal.",
+    "stars": 8
+  },
+  {
+    "id": "osa-mayor",
+    "name": "Osa Mayor",
+    "description": "Siete estrellas que dibujan el famoso Carro o Plato. Las dos de la ladra, Dubhe y Merak, apuntan a la estrella polar, así que es la referencia clásica para orientarse.",
+    "file": "osa-mayor.json",
+    "stars": 7
+  },
+  {
+    "id": "casiopea",
+    "name": "Casiopea",
+    "description": "Una W de cinco estrellas al norte del cielo. En la mitología está sentada en su trono y su forma es de los patrones más fáciles de reconocer en cualquier época del año.",
+    "file": "casiopea.json",
+    "stars": 5
+  }
+]

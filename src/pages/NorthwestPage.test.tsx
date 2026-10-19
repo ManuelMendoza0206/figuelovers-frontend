@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import type { NorthwestResult } from '../types/graph';
 import { useGraphStore } from '../store/useGraphStore';
+import { useNorthwestStore } from '../store/useNorthwestStore';
 import { createProject, getProject, saveProjectGraph } from '../utils/projectStorage';
 
 const runNorthwest = vi.fn();
@@ -39,6 +40,7 @@ const result: NorthwestResult = {
 const mount = () => render(<MemoryRouter initialEntries={['/northwest']}><NorthwestPage /></MemoryRouter>);
 
 beforeEach(() => {
+  useNorthwestStore.getState().reset();
   useGraphStore.getState().loadGraph(
     [
       { id: 'o', position: { x: 0, y: 0 }, data: { label: 'Origen', folio: 1, role: 'source', supply: 5 } },
@@ -55,6 +57,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  useNorthwestStore.getState().reset();
   useGraphStore.getState().clearGraph();
   window.localStorage.clear();
   vi.clearAllMocks();
@@ -68,6 +71,18 @@ describe('NorthwestPage', () => {
     expect(await screen.findByText(/Costo total: 20/)).toBeTruthy();
     expect(screen.getByText(/Paso 1 de 1/)).toBeTruthy();
     expect(screen.queryByText(/Se añadió .* ficticio/)).toBeNull();
+  });
+
+  it('keeps the calculated result and selected step after leaving the section', async () => {
+    const view = mount();
+    fireEvent.click(screen.getByRole('button', { name: /Calcular solución inicial/ }));
+    expect(await screen.findByText(/Costo total: 20/)).toBeTruthy();
+
+    view.unmount();
+    mount();
+
+    expect(screen.getByText(/Costo total: 20/)).toBeTruthy();
+    expect(screen.getByText(/Paso 1 de 1/)).toBeTruthy();
   });
 
   it('shows a dimmed fictitious destination only when the original totals differ', async () => {
