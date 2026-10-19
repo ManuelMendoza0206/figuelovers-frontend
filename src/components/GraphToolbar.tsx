@@ -4,7 +4,18 @@ import type { GraphTool } from '../types/graph';
 interface GraphToolbarProps {
   activeTool: GraphTool;
   onToolChange: (tool: GraphTool) => void;
+  /**
+   * Forma protegida (constelación): los modos que cambian la estructura
+   * quedan deshabilitados pero VISIBLES, con el motivo en el tooltip.
+   * No se ocultan: ver que existen y por qué no van es parte de entender
+   * la constelación.
+   */
+  locked?: boolean;
 }
+
+/** Motivo del bloqueo, igual en todos los botones que no aplican. */
+const LOCKED_REASON =
+  'Constelación protegida: su forma es fija, así que aquí no se pueden agregar, conectar ni eliminar estrellas.';
 
 interface ToolButtonProps {
   active: boolean;
@@ -12,6 +23,7 @@ interface ToolButtonProps {
   title: string;
   /** Tecla que activa la herramienta; se muestra y se agrega al title. */
   shortcut?: string;
+  disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }
@@ -21,20 +33,27 @@ const ToolButton: React.FC<ToolButtonProps> = ({
   label,
   title,
   shortcut,
+  disabled = false,
   onClick,
   children,
 }) => {
+  const description = disabled ? `${title} No disponible: ${LOCKED_REASON}` : title;
+  const fullTitle = shortcut ? `${description} (${shortcut})` : description;
+
   return (
     <button
       type="button"
       onClick={onClick}
-      title={shortcut ? `${title} (${shortcut})` : title}
+      disabled={disabled}
+      title={fullTitle}
       aria-label={shortcut ? `${title} (${shortcut})` : title}
       aria-pressed={active}
       className={[
         'group flex h-10 items-center gap-2 rounded-lg px-3',
         'text-xs font-bold transition-all duration-150',
         'focus:outline-none focus:ring-2 focus:ring-brand/30',
+        'disabled:cursor-not-allowed disabled:opacity-40',
+        'disabled:hover:bg-white/[0.04] disabled:hover:text-ink',
         active
           ? 'bg-brand text-[#07101f] shadow-sm'
           : 'bg-white/[0.04] text-ink hover:bg-brand/10 hover:text-brand',
@@ -73,6 +92,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({
 export const GraphToolbar: React.FC<GraphToolbarProps> = ({
   activeTool,
   onToolChange,
+  locked = false,
 }) => {
   return (
     <div
@@ -112,6 +132,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
         label="Conectar"
         title="Modo conectar: arrastra de un nodo a otro para crear una arista"
         shortcut="W"
+        disabled={locked}
         onClick={() => onToolChange('connect')}
       >
         <svg
@@ -150,6 +171,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
         label="Añadir nodo"
         title="Modo añadir: haz clic en una zona vacía del lienzo para crear una estrella"
         shortcut="E"
+        disabled={locked}
         onClick={() => onToolChange('add')}
       >
         <span className="text-lg font-medium leading-none">+</span>
@@ -160,6 +182,7 @@ export const GraphToolbar: React.FC<GraphToolbarProps> = ({
         label="Eliminar"
         title="Modo eliminar: haz clic en una estrella o una conexión para confirmar su borrado"
         shortcut="P"
+        disabled={locked}
         onClick={() => onToolChange('delete')}
       >
         <svg

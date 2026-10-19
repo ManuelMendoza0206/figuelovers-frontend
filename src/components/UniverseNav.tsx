@@ -5,6 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 export const UniverseNav: React.FC = () => {
   const { pathname } = useLocation();
   const isDashboard = pathname === '/dashboard';
+  const isConstellations = pathname === '/constellations';
 
   return (
     <header className="relative z-30 border-b border-white/10 bg-[#070d1dcc] backdrop-blur-xl">
@@ -23,6 +24,12 @@ export const UniverseNav: React.FC = () => {
           <Link className={`rounded-full px-3 py-2 transition ${isDashboard ? 'bg-brand text-[#07101f]' : 'hover:bg-white/10 hover:text-ink'}`} to="/dashboard">
             <span className="hidden sm:inline">Mis galaxias</span>
             <span className="sm:hidden">Galaxias</span>
+          </Link>
+          <Link
+            className={`rounded-full px-3 py-2 transition ${isConstellations ? 'bg-brand text-[#07101f]' : 'hover:bg-white/10 hover:text-ink'}`}
+            to="/constellations"
+          >
+            Constelaciones
           </Link>
           <Link className="flex items-center gap-1 rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-ink" to="/">
             Explorar <ArrowRight className="h-3.5 w-3.5" />

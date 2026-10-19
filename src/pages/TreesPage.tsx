@@ -27,7 +27,7 @@ interface TreeView {
 const TreesPage: React.FC = () => {
   const location = useLocation();
   const returnTo = new URLSearchParams(location.search).get('from') ?? '/editor';
-  const { nodes, edges, loadGraph } = useGraphStore();
+  const { nodes, edges, replaceGraph, structureLocked } = useGraphStore();
   const [mode, setMode] = useState<'values' | 'random'>('values');
   const [values, setValues] = useState<number[]>([]);
   const [valueInput, setValueInput] = useState('');
@@ -248,13 +248,24 @@ const TreesPage: React.FC = () => {
 
   const saveToEditor = (): void => {
     if (!activeTree || !layout) return;
+
+    // Con una constelación abierta esto reescribiría su forma. El store
+    // lo rechaza igual, pero el motivo se explica acá y el boton viene
+    // deshabilitado en el panel.
+    if (structureLocked) {
+      setErrorMessage(
+        'La constelación abierta está protegida: su forma es fija, así que el árbol no puede reemplazarla.'
+      );
+      return;
+    }
+
     if (nodes.length > 0 && !window.confirm('El grafo actual tiene contenido. ¿Reemplazarlo por este árbol?')) return;
     const projectId = returnTo.match(/^\/galaxy\/([^/]+)/)?.[1];
     if (projectId && !saveProjectGraph(decodeURIComponent(projectId), layout.nodes, layout.edges)) {
       setErrorMessage('No se encontró el proyecto de destino; el árbol no se guardó.');
       return;
     }
-    loadGraph(layout.nodes, layout.edges);
+    replaceGraph(layout.nodes, layout.edges);
     setErrorMessage(null);
   };
 
@@ -300,8 +311,32 @@ const TreesPage: React.FC = () => {
             </div>
           )}
           {values.length > 0 && <p className="mt-3 text-sm text-ink-muted">Insertados: {values.join(', ')}</p>}
-          <button type="button" onClick={useEditorGraph} disabled={loading} className="mt-3 rounded-lg border border-white/15 px-4 py-2 text-sm">Usar el grafo del editor</button>
-          <button type="button" onClick={saveToEditor} disabled={!activeTree} className="ml-2 mt-3 rounded-lg border border-brand/40 px-4 py-2 text-sm text-brand disabled:opacity-40">Enviar al editor / guardar en el grafo actual</button>
+          <button
+            type="button"
+            onClick={useEditorGraph}
+            disabled={loading}
+            title="Solo lee el lienzo: no modifica la constelación. Si el grafo actual no es un árbol válido, se explica el motivo."
+            className="mt-3 rounded-lg border border-white/15 px-4 py-2 text-sm"
+          >
+            Usar el grafo del editor
+          </button>
+          <button
+            type="button"
+            onClick={saveToEditor}
+            disabled={!activeTree || structureLocked}
+            title={structureLocked ? 'La constelación abierta tiene la forma fija: no se le puede reemplazar el grafo.' : undefined}
+            className="ml-2 mt-3 rounded-lg border border-brand/40 px-4 py-2 text-sm text-brand disabled:opacity-40"
+          >
+            Enviar al editor / guardar en el grafo actual
+          </button>
+          {structureLocked && (
+            <p className="mt-2 max-w-xl text-xs text-ink-muted">
+              Hay una <strong className="text-ink">constelación protegida</strong> en el editor:
+              su forma es fija, así que «Enviar al editor» está deshabilitado.
+              «Usar el grafo del editor» sigue funcionando si el lienzo actual es un árbol
+              válido.
+            </p>
+          )}
         </section>
 
         <section className="glass-panel mt-4 rounded-2xl p-5">

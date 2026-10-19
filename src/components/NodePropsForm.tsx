@@ -1,5 +1,6 @@
-import { Save, Trash2 } from 'lucide-react';
+import { Lock, Save, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { useGraphStore } from '../store/useGraphStore';
 import type { AppNode } from '../types/graph';
 import { Button, SectionHeader, TextField } from '../ui';
 
@@ -22,6 +23,10 @@ export const NodePropsForm: React.FC<NodePropsFormProps> = ({
   disabled = false,
 }) => {
   const [nodeLabel, setNodeLabel] = useState(node.data?.label ?? '');
+
+  // Con la forma protegida el modo Eliminar no existe: el aviso tiene
+  // que decir lo que SÍ se puede hacer (renombrar), no invitar a borrar.
+  const structureLocked = useGraphStore((state) => state.structureLocked);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -72,15 +77,25 @@ export const NodePropsForm: React.FC<NodePropsFormProps> = ({
         {/* Antes aca vivia el boton "Eliminar nodo". Ahora hay UN solo
             botón de eliminar (el del lienzo) y el que dispara el borrado
             es el clic sobre el elemento, asi que esto solo orienta. */}
-        <p className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-[11px] leading-relaxed text-ink-muted">
-          <Trash2 aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#ffb09a]" />
-          <span>
-            Para eliminar esta estrella: activa el modo{' '}
-            <strong className="font-bold text-ink">Eliminar</strong> en la
-            barra del lienzo y haz clic sobre ella. Atajo{' '}
-            <kbd className="rounded border border-white/15 bg-white/[0.06] px-1 py-0.5 font-mono text-[10px] text-ink">P</kbd>.
-          </span>
-        </p>
+        {structureLocked ? (
+          <p className="flex items-start gap-2 rounded-xl border border-mission/25 bg-mission/[0.07] px-3 py-2.5 text-[11px] leading-relaxed text-ink-muted">
+            <Lock aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-mission" />
+            <span>
+              Estrella de una <strong className="font-bold text-ink">constelación protegida</strong>:
+              su lugar en la figura es fijo y no se puede eliminar, pero el nombre sí cambia.
+            </span>
+          </p>
+        ) : (
+          <p className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-[11px] leading-relaxed text-ink-muted">
+            <Trash2 aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#ffb09a]" />
+            <span>
+              Para eliminar esta estrella: activa el modo{' '}
+              <strong className="font-bold text-ink">Eliminar</strong> en la
+              barra del lienzo y haz clic sobre ella. Atajo{' '}
+              <kbd className="rounded border border-white/15 bg-white/[0.06] px-1 py-0.5 font-mono text-[10px] text-ink">P</kbd>.
+            </span>
+          </p>
+        )}
       </form>
     </section>
   );

@@ -1,4 +1,4 @@
-import { ChevronDown, Crosshair, Route, Settings, Truck, GitBranch } from 'lucide-react';
+import { ChevronDown, Crosshair, Route, Settings, Sparkles, Truck, GitBranch } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEdgeDirectionLogic } from '../hooks/useEdgeDirectionLogic';
@@ -159,6 +159,19 @@ export const Sidebar: React.FC = () => {
           <div className="min-h-0 overflow-hidden">
             <p className="eyebrow mb-2 text-[9px]">Herramientas de navegación</p>
             <div className="space-y-2">
+              {/* Va primero: es la unica entrada que no depende del grafo
+                  actual, y es la puerta a las plantillas del catalogo. */}
+              <button
+                type="button"
+                onClick={() => { navigate('/constellations'); setIsToolsOpen(false); }}
+                className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${location.pathname === '/constellations' ? 'border-mission/40 bg-mission/10 text-mission' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-mission/25 hover:text-ink'}`}
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>
+                  <strong className="block text-xs">Constelaciones famosas</strong>
+                  <span className="font-mono text-[10px] opacity-70">(plantillas de forma fija)</span>
+                </span>
+              </button>
               <button type="button" onClick={() => openAlgorithm('/johnson')} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${location.pathname === '/johnson' ? 'border-brand/40 bg-brand/10 text-brand' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-brand/25 hover:text-ink'}`}>
                 <Route className="h-4 w-4" />
                 <span><strong className="block text-xs">Rutas interestelares</strong><span className="font-mono text-[10px] opacity-70">(Johnson)</span></span>

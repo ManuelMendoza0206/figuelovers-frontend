@@ -56,3 +56,29 @@ describe('HelpModal - atajos del lienzo', () => {
     expect(screen.getByText('Volver a Interactuar')).toBeTruthy();
   });
 });
+
+describe('HelpModal - constelaciones', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('explica qué son, qué se puede editar y cómo se usan los algoritmos', () => {
+    render(<HelpModal />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
+
+    const card = screen.getByRole('button', { name: /Constelaciones famosas/ });
+    expect(card.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(card);
+    expect(card.getAttribute('aria-expanded')).toBe('true');
+
+    // Resumen visible siempre (sin desplegar también se lee).
+    expect(screen.getByText(/Plantillas de figuras reales del cielo/)).toBeTruthy();
+
+    // Explicación desplegable.
+    expect(screen.getByText(/La forma es fija/)).toBeTruthy();
+    expect(screen.getByText(/Johnson exige aristas dirigidas/)).toBeTruthy();
+    expect(screen.getByText('Restaurar original')).toBeTruthy();
+    expect(screen.getByText(/JSON normal/)).toBeTruthy();
+  });
+});

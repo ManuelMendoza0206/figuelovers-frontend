@@ -70,6 +70,7 @@ const CanvasContent: React.FC = () => {
     edges,
     selectedNode,
     selectedEdge,
+    structureLocked,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -197,6 +198,9 @@ const CanvasContent: React.FC = () => {
   const handleDoubleClick = useCallback(
     (event: React.MouseEvent) => {
       if (activeTool !== 'interact') return;
+      // Doble clic = atajo para crear estrella. Con la forma protegida no
+      // existe.
+      if (structureLocked) return;
 
       const target = event.target as HTMLElement | null;
       if (!target?.closest('.react-flow__pane')) return;
@@ -205,15 +209,25 @@ const CanvasContent: React.FC = () => {
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
       addNode(position);
     },
-    [activeTool, addNode, screenToFlowPosition]
+    [activeTool, addNode, screenToFlowPosition, structureLocked]
   );
 
   const handleToolChange = useCallback(
     (tool: GraphTool) => {
+      // Constelación protegida: los modos que cambian la forma no se
+      // activan ni por tecla. El store los rechazaría igual, pero acá el
+      // usuario ni siquiera llega a intentarlo y la barra lo dice.
+      if (
+        structureLocked &&
+        (tool === 'connect' || tool === 'add' || tool === 'delete')
+      ) {
+        return;
+      }
+
       setActiveTool(tool);
       if (tool !== 'interact') setSelectedElement(null, null);
     },
-    [setSelectedElement]
+    [setSelectedElement, structureLocked]
   );
 
   const confirmDelete = useCallback(() => {
@@ -252,8 +266,14 @@ const CanvasContent: React.FC = () => {
     fitView({ padding: 0.2, duration: 500 });
   }, [fitView]);
 
-  const nodesDraggable = activeTool === 'interact';
-  const nodesConnectable = activeTool === 'connect';
+  /**
+   * Con la forma protegida el lienzo queda "solo lectura" en lo
+   * estructural: no se arrastran nodos, no se conectan y no se borra con
+   * teclado. Seleccionar, hacer zoom y desplazar la vista siguen
+   * habilitados, igual que editar etiquetas y pesos desde el panel.
+   */
+  const nodesDraggable = !structureLocked && activeTool === 'interact';
+  const nodesConnectable = !structureLocked && activeTool === 'connect';
   const elementsSelectable = activeTool === 'interact';
 
   /**
@@ -288,10 +308,15 @@ const CanvasContent: React.FC = () => {
         <GraphToolbar
           activeTool={activeTool}
           onToolChange={handleToolChange}
+          locked={structureLocked}
         />
       </div>
 
-      <GraphHud activeTool={activeTool} onFitView={handleFitView} />
+      <GraphHud
+        activeTool={activeTool}
+        onFitView={handleFitView}
+        locked={structureLocked}
+      />
 
       <ReactFlow
         nodes={displayNodes}
@@ -308,6 +333,7 @@ const CanvasContent: React.FC = () => {
         nodesDraggable={nodesDraggable}
         nodesConnectable={nodesConnectable}
         elementsSelectable={elementsSelectable}
+        deleteKeyCode={structureLocked ? null : 'Backspace'}
         panOnDrag={panOnDrag}
         connectionMode={ConnectionMode.Loose}
         fitView

@@ -44,9 +44,17 @@ export const Navbar: React.FC = () => {
     edges,
     validationData,
     setValidationData,
-    loadGraph,
+    replaceGraph,
     clearGraph,
+    structureLocked,
   } = useGraphStore();
+
+  /**
+   * Motivo compartido de los botones deshabilitados con una constelación
+   * abierta. El bloqueo real vive en el store; esto solo lo explica.
+   */
+  const LOCKED_TITLE =
+    'Constelación protegida: su forma es fija, así que limpiar o cargar un grafo por encima queda deshabilitado.';
 
   const [isFetchingMatrix, setIsFetchingMatrix] = useState(false);
   const [isFetchingList, setIsFetchingList] = useState(false);
@@ -145,7 +153,15 @@ export const Navbar: React.FC = () => {
       }
 
       const { nodes: flowNodes, edges: flowEdges } = graphPayloadToFlow(response.data.graph);
-      loadGraph(flowNodes, flowEdges);
+
+      // replaceGraph y no loadGraph: reemplazar TODO el grafo con una
+      // constelación abierta la pisaría. El store lo rechaza; el aviso
+      // evita que el usuario se pregunte por qué no pasó nada.
+      if (!replaceGraph(flowNodes, flowEdges)) {
+        error('No se importó: la constelación abierta está protegida (su forma es fija).');
+        return;
+      }
+
       success('Grafo importado correctamente.');
     } catch (err: unknown) {
       error(describeError(err, 'No se pudo importar el archivo.'));
@@ -155,6 +171,11 @@ export const Navbar: React.FC = () => {
   };
 
   const handleClearGraph = () => {
+    if (structureLocked) {
+      error('La constelación está protegida: su forma es fija y no se puede limpiar.');
+      return;
+    }
+
     if (nodes.length === 0 && edges.length === 0) {
       error('El lienzo ya está vacío.');
       return;
@@ -170,7 +191,11 @@ export const Navbar: React.FC = () => {
   useEditorEvent(EDITOR_EVENTS.requestClear, handleClearGraph);
 
   const confirmClearGraph = () => {
-    clearGraph();
+    if (!clearGraph()) {
+      error('La constelación está protegida: su forma es fija y no se puede limpiar.');
+      return;
+    }
+
     setIsMatrixModalOpen(false);
     setIsAdjListModalOpen(false);
     success('Grafo limpiado correctamente.');
@@ -201,9 +226,10 @@ export const Navbar: React.FC = () => {
           
           <IconButton
             onClick={handleClearGraph}
-            title="Eliminar todo el grafo"
+            disabled={structureLocked}
+            title={structureLocked ? LOCKED_TITLE : 'Eliminar todo el grafo'}
             aria-label="Eliminar todo el grafo"
-            className="hidden sm:flex items-center gap-2 rounded-md border border-[#ff9f80]/30 bg-[#ff9f80]/10 px-3 py-1.5 text-[#ffb09a] transition-colors hover:bg-[#ff9f80]/20"
+            className="hidden sm:flex items-center gap-2 rounded-md border border-[#ff9f80]/30 bg-[#ff9f80]/10 px-3 py-1.5 text-[#ffb09a] transition-colors hover:bg-[#ff9f80]/20 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Trash2 className="h-4 w-4" />
             <span className="font-semibold">Limpiar Todo</span>
@@ -259,10 +285,10 @@ export const Navbar: React.FC = () => {
 
               <IconButton 
                 onClick={handleImportClick} 
-                disabled={isImporting} 
-                title="Cargar grafo desde JSON"
+                disabled={isImporting || structureLocked} 
+                title={structureLocked ? LOCKED_TITLE : 'Cargar grafo desde JSON'}
                 aria-label="Cargar grafo desde JSON"
-                className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-ink-muted transition-colors hover:bg-brand-muted hover:text-ink"
+                className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-ink-muted transition-colors hover:bg-brand-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isImporting ? <Spinner /> : <Upload className="h-4 w-4 text-teal-700" />}
                 <span className="hidden sm:inline font-semibold">Cargar JSON</span>

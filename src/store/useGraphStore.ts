@@ -46,12 +46,35 @@ interface GraphState {
   selectedNode: AppNode | null;
   selectedEdge: AppEdge | null;
 
+  /**
+   * Bloqueo estructural: el grafo cargado es una constelación famosa,
+   * así que su FORMA (nodos, posiciones y aristas) es fija.
+   *
+   * Vive en el store y no en la UI a proposito: un guard en un boton
+   * se saltea con un atajo, con el teclado o llamando a la accion desde
+   * otro lado. Acá rechazan addNode, deleteNode, deleteEdge, onConnect,
+   * clearGraph, replaceGraph y los cambios de 'position'/'remove' de
+   * onNodesChange/onEdgesChange.
+   *
+   * Lo que SIGUE permitido es lo que hace util una constelación:
+   * renombrar estrellas (updateNodeData), pesos y direcciones de aristas
+   * (updateEdgeData, reverseEdge, setAllEdgesDirected), seleccion,
+   * zoom/paneo y el data de nodos que usan los algoritmos (roles,
+   * oferta, demanda).
+   */
+  structureLocked: boolean;
+
+  /** Plantilla de origen, solo cuando structureLocked es true. */
+  constellationId: string | null;
+
+  setStructureLocked: (locked: boolean, constellationId?: string | null) => void;
+
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
-  addNode: (position: { x: number; y: number }) => void;
-  deleteNode: (nodeId: string) => void;
-  deleteEdge: (edgeId: string) => void;
+  addNode: (position: { x: number; y: number }) => boolean;
+  deleteNode: (nodeId: string) => boolean;
+  deleteEdge: (edgeId: string) => boolean;
   reverseEdge: (edgeId: string) => void;
   updateNodeData: (nodeId: string, update: string | Partial<AppNodeData>) => void;
 
@@ -60,6 +83,16 @@ interface GraphState {
     weight: number,
     isDirected: boolean
   ) => void;
+
+  /**
+   * Pone todas las aristas en dirigidas o no dirigidas.
+   *
+   * Es lo que convierte una constelación en algo con lo que Johnson
+   * pueda trabajar, y NO es una operación estructural: no agrega ni
+   * quita aristas ni mueve nada, solo cambia el flag que ya se puede
+   * editar arista por arista.
+   */
+  setAllEdgesDirected: (directed: boolean) => void;
 
   setValidationData: (
     data: GraphValidationData | null
@@ -70,9 +103,26 @@ interface GraphState {
     edge: AppEdge | null
   ) => void;
 
+  /** Grafo libre: carga y DESACTIVA el bloqueo. */
   loadGraph: (nodes: AppNode[], edges: AppEdge[]) => void;
 
-  clearGraph: () => void;
+  /** Constelación: carga y ACTIVA el bloqueo para ese id de plantilla. */
+  loadConstellation: (
+    constellationId: string,
+    nodes: AppNode[],
+    edges: AppEdge[]
+  ) => void;
+
+  /**
+   * Reemplaza todo el grafo por otro (importar, "Enviar al editor").
+   *
+   * A diferencia de loadGraph, esto se RECHAZA en modo bloqueado: el
+   * bloqueo solo lo levanta el flujo explícito de abrir un proyecto
+   * libre, no un import ni un árbol que pisaría la constelación.
+   */
+  replaceGraph: (nodes: AppNode[], edges: AppEdge[]) => boolean;
+
+  clearGraph: () => boolean;
 }
 
 /** Re-resuelve la seleccion tras un cambio en la coleccion. */
@@ -87,18 +137,65 @@ const keepSelection = <T extends { id: string }>(
   return updated.find((item) => item.id === selected.id) ?? null;
 };
 
-export const useGraphStore = create<GraphState>((set) => ({
+/**
+ * Estado resultante de reemplazar el grafo COMPLETO (con folios).
+ *
+ * Compartido por loadGraph, loadConstellation y replaceGraph: los tres
+ * hacen lo mismo con el contenido, y lo único que difiere es si el
+ * bloqueo queda activado o desactivado.
+ */
+const loadedGraphState = (
+  nodes: AppNode[],
+  edges: AppEdge[]
+): Partial<GraphState> => {
+  const nodesWithFolio = ensureFolios(nodes, computeNextFolio(nodes));
+
+  return {
+    nodes: nodesWithFolio,
+    edges,
+    // Recalculado: completar folios consumio numeros.
+    nextFolio: computeNextFolio(nodesWithFolio),
+    validationData: null,
+    selectedNode: null,
+    selectedEdge: null,
+  };
+};
+
+export const useGraphStore = create<GraphState>((set, get) => ({
   nodes: [],
   edges: [],
   nextFolio: 1,
   validationData: null,
   selectedNode: null,
   selectedEdge: null,
+  structureLocked: false,
+  constellationId: null,
+
+  setStructureLocked: (locked, constellationId = null) => {
+    set({
+      structureLocked: locked,
+      constellationId: locked ? constellationId : null,
+    });
+  },
 
   onNodesChange: (changes) => {
     set((state) => {
+      // Bloqueado: solo sobrevive lo no estructural. 'select' marca una
+      // estrella y 'dimensions' es la medicion interna de React Flow;
+      // 'position' (mover) y 'remove' (borrar) se descartan aca aunque
+      // alguien los llame por fuera de la UI.
+      const allowedChanges = state.structureLocked
+        ? changes.filter(
+            (change) => change.type !== 'position' && change.type !== 'remove'
+          )
+        : changes;
+
+      if (allowedChanges.length === 0) {
+        return state;
+      }
+
       const updatedNodes = applyNodeChanges(
-        changes,
+        allowedChanges,
         state.nodes
       ) as AppNode[];
 
@@ -113,8 +210,19 @@ export const useGraphStore = create<GraphState>((set) => ({
 
   onEdgesChange: (changes) => {
     set((state) => {
+      // Igual que con los nodos: 'select' pasa, 'remove' y 'add' no.
+      const allowedChanges = state.structureLocked
+        ? changes.filter(
+            (change) => change.type !== 'remove' && change.type !== 'add'
+          )
+        : changes;
+
+      if (allowedChanges.length === 0) {
+        return state;
+      }
+
       const updatedEdges = applyEdgeChanges(
-        changes,
+        allowedChanges,
         state.edges
       ) as AppEdge[];
 
@@ -134,6 +242,10 @@ export const useGraphStore = create<GraphState>((set) => ({
     }
 
     set((state) => {
+      if (state.structureLocked) {
+        return state;
+      }
+
       if (hasConflictingEdge(state.edges, source, target)) {
         return state;
       }
@@ -155,6 +267,10 @@ export const useGraphStore = create<GraphState>((set) => ({
   },
 
   addNode: (position) => {
+    if (get().structureLocked) {
+      return false;
+    }
+
     const newId = createNodeId();
 
     set((state) => {
@@ -175,9 +291,15 @@ export const useGraphStore = create<GraphState>((set) => ({
         selectedEdge: null,
       };
     });
+
+    return true;
   },
 
   deleteNode: (nodeId) => {
+    if (get().structureLocked) {
+      return false;
+    }
+
     set((state) => {
       const nodeExists = state.nodes.some(
         (node) => node.id === nodeId
@@ -204,9 +326,15 @@ export const useGraphStore = create<GraphState>((set) => ({
         validationData: null,
       };
     });
+
+    return true;
   },
 
   deleteEdge: (edgeId) => {
+    if (get().structureLocked) {
+      return false;
+    }
+
     set((state) => {
       const edgeExists = state.edges.some(
         (edge) => edge.id === edgeId
@@ -227,6 +355,8 @@ export const useGraphStore = create<GraphState>((set) => ({
         validationData: null,
       };
     });
+
+    return true;
   },
 
   reverseEdge: (edgeId) => {
@@ -315,6 +445,33 @@ export const useGraphStore = create<GraphState>((set) => ({
     });
   },
 
+  setAllEdgesDirected: (directed) => {
+    set((state) => {
+      // Sin cambios: ni siquiera hay que romper la referencia del array.
+      if (state.edges.every((edge) => edge.data?.is_directed === directed)) {
+        return state;
+      }
+
+      return {
+        edges: state.edges.map((edge) => ({
+          ...edge,
+          type: 'straight' as const,
+          // La etiqueta es el peso: se conserva tal cual, solo cambia la
+          // orientacion y el marcador de flecha.
+          label: (edge.data?.weight ?? DEFAULT_WEIGHT).toString(),
+          data: {
+            ...edge.data,
+            weight: edge.data?.weight ?? DEFAULT_WEIGHT,
+            is_directed: directed,
+          },
+          markerEnd: directed ? createEdgeMarker() : undefined,
+          style: createEdgeStyle(),
+        })),
+        validationData: null,
+      };
+    });
+  },
+
   setValidationData: (data) => {
     set({ validationData: data });
   },
@@ -324,22 +481,40 @@ export const useGraphStore = create<GraphState>((set) => ({
   },
 
   loadGraph: (nodes, edges) => {
-    set(() => {
-      const nodesWithFolio = ensureFolios(nodes, computeNextFolio(nodes));
-
-      return {
-        nodes: nodesWithFolio,
-        edges,
-        // Recalculado: completar folios consumio numeros.
-        nextFolio: computeNextFolio(nodesWithFolio),
-        validationData: null,
-        selectedNode: null,
-        selectedEdge: null,
-      };
+    // Camino libre: cargar un grafo normal (proyecto free, /editor)
+    // desactiva cualquier bloqueo heredado de una constelacion previa.
+    set({
+      ...loadedGraphState(nodes, edges),
+      structureLocked: false,
+      constellationId: null,
     });
   },
 
+  loadConstellation: (constellationId, nodes, edges) => {
+    set({
+      ...loadedGraphState(nodes, edges),
+      structureLocked: true,
+      constellationId,
+    });
+  },
+
+  replaceGraph: (nodes, edges) => {
+    // Importar o "Enviar al editor" no pueden pisar una constelacion:
+    // eso cambiaria su forma. El bloqueo solo lo levanta el flujo de
+    // abrir un proyecto (loadGraph) o el de restaurar original.
+    if (get().structureLocked) {
+      return false;
+    }
+
+    set(loadedGraphState(nodes, edges));
+    return true;
+  },
+
   clearGraph: () => {
+    if (get().structureLocked) {
+      return false;
+    }
+
     set({
       nodes: [],
       edges: [],
@@ -347,6 +522,10 @@ export const useGraphStore = create<GraphState>((set) => ({
       validationData: null,
       selectedNode: null,
       selectedEdge: null,
+      structureLocked: false,
+      constellationId: null,
     });
+
+    return true;
   },
 }));

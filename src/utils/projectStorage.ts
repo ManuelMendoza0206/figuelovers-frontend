@@ -40,6 +40,43 @@ export const createProject = (name = 'Nueva galaxia'): ProjectSnapshot => {
   return project;
 };
 
+/**
+ * Crea un proyecto a partir de una plantilla de constelacion.
+ *
+ * El contenido se COPIA: borrar o editar este proyecto nunca toca el
+ * archivo original de public/constellations, que es de solo lectura.
+ */
+export const createConstellationProject = (
+  constellationId: string,
+  name: string,
+  nodes: AppNode[],
+  edges: AppEdge[]
+): ProjectSnapshot => {
+  const now = new Date().toISOString();
+  const project: ProjectSnapshot = {
+    id: makeId(),
+    name,
+    createdAt: now,
+    updatedAt: now,
+    nodes,
+    edges,
+    kind: 'constellation',
+    constellationId,
+  };
+  writeProjects([...readProjects(), project]);
+  return project;
+};
+
+/** Primer proyecto local derivado de esa plantilla, si existe. */
+export const findConstellationProject = (
+  constellationId: string
+): ProjectSnapshot | null =>
+  readProjects().find(
+    (project) =>
+      project.kind === 'constellation' &&
+      project.constellationId === constellationId
+  ) ?? null;
+
 export const updateProject = (
   projectId: string,
   changes: Partial<Pick<ProjectSnapshot, 'name' | 'nodes' | 'edges'>>

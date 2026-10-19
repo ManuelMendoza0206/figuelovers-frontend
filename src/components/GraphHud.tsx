@@ -6,6 +6,8 @@ import type { GraphTool } from '../types/graph';
 interface GraphHudProps {
   activeTool: GraphTool;
   onFitView: () => void;
+  /** Forma protegida (constelación): el modo activo no es "arrastrar". */
+  locked?: boolean;
 }
 
 /** Que esta esperando el usuario en el modo activo. El cursor ya dice el
@@ -33,7 +35,23 @@ const TOOL_HINTS: Record<GraphTool, React.ReactNode> = {
   ),
 };
 
-export const GraphHud: React.FC<GraphHudProps> = ({ activeTool, onFitView }) => {
+/**
+ * Con la forma protegida el modo activo termina siendo siempre
+ * "interactuar", pero ese modo ya no incluye arrastrar: dejar el hint
+ * de "mueve" seria mentirle al usuario.
+ */
+const LOCKED_HINT = (
+  <span>
+    <strong className="font-bold text-ink">Constelación protegida</strong> · la forma es fija;
+    renombra estrellas y edita pesos
+  </span>
+);
+
+export const GraphHud: React.FC<GraphHudProps> = ({
+  activeTool,
+  onFitView,
+  locked = false,
+}) => {
   const { nodes, edges } = useGraphStore();
 
   return (
@@ -45,7 +63,7 @@ export const GraphHud: React.FC<GraphHudProps> = ({ activeTool, onFitView }) => 
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
           </span>
 
-          {TOOL_HINTS[activeTool]}
+          {locked ? LOCKED_HINT : TOOL_HINTS[activeTool]}
         </div>
       </div>
 
