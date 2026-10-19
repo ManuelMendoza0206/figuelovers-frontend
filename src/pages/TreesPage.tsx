@@ -2,6 +2,7 @@ import { GitBranch } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
+import { AlgorithmHelp } from '../components/AlgorithmHelp';
 import { BackButton } from '../components/BackButton';
 import { Sidebar } from '../components/Sidebar';
 import { TreeBuildPanel } from '../components/TreeBuildPanel';
@@ -76,6 +77,18 @@ const TreesPage: React.FC = () => {
             Estructuras · árboles
           </span>
         </div>
+
+        <AlgorithmHelp
+          title="Cómo funciona el árbol binario de búsqueda"
+          summary="Construye un árbol binario de búsqueda y muestra sus recorridos."
+          items={[
+            'Ingresá los valores separados por coma o generá una cantidad aleatoria.',
+            'En un ABB, los valores menores se insertan a la izquierda y los mayores a la derecha.',
+            'Pre-order: raíz–izquierda–derecha. In-order: izquierda–raíz–derecha. Post-order: izquierda–derecha–raíz.',
+            'También podés cargar el árbol que está en el editor; si no cumple la propiedad de búsqueda, se usa como árbol binario general.',
+            'El árbol se guarda en el grafo como aristas dirigidas padre→hijo con los metadatos treeValue y treeSide.',
+          ]}
+        />
 
         <section className="glass-panel shrink-0 rounded-2xl p-4">
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">

@@ -1,6 +1,7 @@
 import { ArrowRight, Info, Layers } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { AlgorithmHelp } from '../components/AlgorithmHelp';
 import { BackButton } from '../components/BackButton';
 import { Sidebar } from '../components/Sidebar';
 import { error as showError } from '../hooks/useToast';
@@ -491,6 +492,19 @@ const AssignmentPage: React.FC = () => {
           </div>
         </div>
       </header>
+
+      <AlgorithmHelp
+        title="Cómo funciona la asignación húngara"
+        summary="Busca la asignación de costo mínimo o beneficio máximo entre filas y columnas."
+        items={[
+          'Cada fila representa un trabajador y cada columna una tarea: no se usan los nodos del grafo.',
+          'Al traducir una constelación, las aristas dirigidas completan [origen][destino] y las no dirigidas completan ambos sentidos.',
+          'Las celdas sin conexión empiezan en 0 y deben revisarse: no significan rutas prohibidas. Un 0 es el costo más barato.',
+          'Para maximizar, cada valor se transforma como máximo − valor.',
+          'Las matrices rectangulares se cuadran con filas o columnas ficticias; el límite es 20 × 20.',
+          'Los pasos muestran una traza didáctica; la asignación final la resuelve el solver de asignación lineal.',
+        ]}
+      />
 
       {/* Aviso de traduccion desde la pizarra: va a ancho completo, antes
           del area de dos columnas, porque describe el ORIGEN de la matriz
