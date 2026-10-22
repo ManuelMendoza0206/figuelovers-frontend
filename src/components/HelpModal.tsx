@@ -1,4 +1,4 @@
-import { ArrowRightLeft, ChevronDown, Crosshair, GitBranch, HelpCircle, Keyboard, MousePointerClick, Orbit, Plus, Route, Sparkles, Trash2, Truck } from 'lucide-react';
+import { ArrowRightLeft, ArrowUpDown, ChevronDown, Crosshair, GitBranch, HelpCircle, Keyboard, MousePointerClick, Orbit, Plus, Route, Sparkles, Trash2, Truck } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { IconButton } from '../ui';
 import { EDITOR_EVENTS } from '../lib/editorEvents';
@@ -79,6 +79,12 @@ const ALGORITHM_ITEMS: HelpItem[] = [
     title: 'Árboles binarios de búsqueda',
     description: 'Inserta valores separados por coma o genera valores aleatorios para construir y recorrer un ABB.',
     detail: 'En un ABB, los valores menores se insertan a la izquierda y los mayores a la derecha. Pre-order visita raíz–izquierda–derecha; in-order, izquierda–raíz–derecha; post-order, izquierda–derecha–raíz (para la raíz 2 con hijos 1 y 3: 2,1,3; 1,2,3; 1,3,2). También puedes cargar el árbol desde el grafo del editor; si ese grafo no cumple la propiedad de búsqueda, se conserva como árbol binario general. Se guarda en el grafo como aristas dirigidas padre→hijo y metadatos treeValue/treeSide en node.data, así se conserva al guardar/exportar el proyecto.',
+  },
+  {
+    icon: <ArrowUpDown className="h-4 w-4" />,
+    title: 'Ordenamiento en barras (Sort)',
+    description: 'Ordena una lista de números con burbuja, selección o inserción y muestra cada paso con barras animadas.',
+    detail: 'Los tres algoritmos ordenan de menor a mayor en O(n²), pero se comportan distinto: burbuja compara vecinos y empuja el mayor al final de cada pasada; selección busca el mínimo restante y lo lleva al frente; inserción levanta cada número y lo desliza hacia la izquierda hasta su lugar. En la escena, ámbar marca una comparación, violeta un movimiento, celeste el mínimo o la clave levantada y turquesa los números que ya no se tocan. Puedes cargar tus propios valores separados por coma (2 a 40, repetidos permitidos) o generar una lista aleatoria. El player permite pausar, avanzar paso a paso, arrastrar el progreso y ajustar la velocidad; la lista y la configuración se conservan al cambiar de sección.',
   },
 ];
 

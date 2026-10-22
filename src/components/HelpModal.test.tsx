@@ -8,7 +8,7 @@ describe('HelpModal algorithm details', () => {
     cleanup();
   });
 
-  it('renders four algorithm cards and expands their accessible details', () => {
+  it('renders five algorithm cards and expands their accessible details', () => {
     render(<HelpModal />);
     fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
 
@@ -16,6 +16,7 @@ describe('HelpModal algorithm details', () => {
     expect(screen.getByText('Comando de misión (Asignación húngara)')).toBeTruthy();
     expect(screen.getByText('Esquina Noroeste (transporte)')).toBeTruthy();
     expect(screen.getByText('Árboles binarios de búsqueda')).toBeTruthy();
+    expect(screen.getByText('Ordenamiento en barras (Sort)')).toBeTruthy();
 
     const treeCard = screen.getByRole('button', { name: /Árboles binarios de búsqueda/ });
     expect(treeCard.getAttribute('aria-expanded')).toBe('false');

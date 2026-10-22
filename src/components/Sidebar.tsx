@@ -1,4 +1,4 @@
-import { ChevronDown, Crosshair, Route, Settings, Truck, GitBranch } from 'lucide-react';
+import { ChevronDown, Crosshair, Route, Settings, Truck, GitBranch, ChartNoAxesColumn } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -196,6 +196,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ workbench, children }) => {
               >
                 <Truck className="h-4 w-4" />
                 <span>NORTHWEST</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openAlgorithm('/sort')}
+                className={`col-span-2 flex items-center justify-center gap-2 rounded-xl border px-2 py-2 text-[11px] font-bold transition ${location.pathname === '/sort' ? 'border-sky-300/40 bg-sky-300/10 text-sky-200' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-sky-300/25 hover:text-ink'}`}
+              >
+                <ChartNoAxesColumn className="h-4 w-4" />
+                <span>SORT</span>
               </button>
             </div>
           </div>
