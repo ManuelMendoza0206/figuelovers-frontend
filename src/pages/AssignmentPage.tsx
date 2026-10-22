@@ -55,6 +55,9 @@ const CONTROL_CAPTION =
 const CONTROL_FIELD =
   'bg-transparent text-ink focus:outline-none';
 
+const normalizeNumericInput = (value: string): string =>
+  value.replace(/^0+(?=\d)/, '');
+
 const hasFeasibleAssignment = (
   response: AssignmentResultData,
   costMatrix: (number | null)[][],
@@ -127,6 +130,9 @@ const AssignmentPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [noSolution, setNoSolution] = useState(false);
+  const [editingProhibitedCell, setEditingProhibitedCell] = useState<string | null>(
+    null
+  );
 
   /** Request en vuelo, para poder abortarlo al relanzar el calculo. */
   const abortInFlight = useRef<AbortController | null>(null);
@@ -264,14 +270,26 @@ const AssignmentPage: React.FC = () => {
   };
 
   const updateCell = (rowIndex: number, colIndex: number, value: string) => {
+    const normalizedValue = normalizeNumericInput(value);
+    const nextValue =
+      normalizedValue.trim() === ''
+        ? null
+        : Number.isFinite(Number(normalizedValue))
+          ? Number(normalizedValue)
+          : undefined;
+
+    if (nextValue !== undefined && nextValue !== null) {
+      setEditingProhibitedCell(null);
+    }
+
     setMatrix((current) =>
       current.map((row, rIndex) =>
         rIndex === rowIndex
           ? row.map((cell, cIndex) =>
               cIndex === colIndex
-                ? Number.isFinite(Number(value))
-                  ? Number(value)
-                  : cell
+                ? nextValue === undefined
+                  ? cell
+                  : nextValue
                 : cell
             )
           : row
@@ -292,17 +310,45 @@ const AssignmentPage: React.FC = () => {
     setNoSolution(false);
 
     try {
+      // Leer el snapshot en el momento del clic evita que un render
+      // anterior conserve la matriz original cuando el usuario edita y
+      // calcula inmediatamente después.
+      const currentState = useAssignmentStore.getState();
+      const currentMatrix = currentState.matrix;
+      const currentRows = currentState.rows;
+      const currentCols = currentState.cols;
+      const currentMaximize = currentState.maximize;
+      const currentRowLabels = currentState.rowLabels;
+      const currentColLabels = currentState.colLabels;
+      const currentInputSignature = JSON.stringify({
+        matrix: currentMatrix,
+        rows: currentRows,
+        cols: currentCols,
+        rowLabels: currentRowLabels.slice(0, currentRows),
+        colLabels: currentColLabels.slice(0, currentCols),
+        maximize: currentMaximize,
+      });
+
       const payload = {
-        cost_matrix: serializeAssignmentMatrix(matrix, maximize),
-        row_labels: rowLabels.slice(0, rows),
-        col_labels: colLabels.slice(0, cols),
-        maximize,
+        cost_matrix: serializeAssignmentMatrix(currentMatrix, currentMaximize),
+        row_labels: currentRowLabels.slice(0, currentRows),
+        col_labels: currentColLabels.slice(0, currentCols),
+        maximize: currentMaximize,
       };
       const response = await GraphServiceAPI.runAssignment(
         payload,
         controller.signal
       );
-      if (!hasFeasibleAssignment(response, matrix, rowLabels, colLabels, rows, cols)) {
+      if (
+        !hasFeasibleAssignment(
+          response,
+          currentMatrix,
+          currentRowLabels,
+          currentColLabels,
+          currentRows,
+          currentCols
+        )
+      ) {
         setResult(null);
         setResultSignature(null);
         setNoSolution(true);
@@ -311,7 +357,7 @@ const AssignmentPage: React.FC = () => {
 
       // Sellamos la firma: si el usuario edita algo despues, el
       // resultado deja de mostrarse solo.
-      setResultSignature(inputSignature);
+      setResultSignature(currentInputSignature);
       setResult(response);
       setCurrentStep(0);
       setShowProcess(false);
@@ -646,10 +692,20 @@ const AssignmentPage: React.FC = () => {
                       const prohibited = value === null;
                       return (
                       <td key={`cell-${rowIndex}-${colIndex}`} className="px-1 py-1 font-mono">
-                        {prohibited ? (
+                        {prohibited && editingProhibitedCell !== `${rowIndex},${colIndex}` ? (
                           <span
-                            role="img"
+                            role="button"
+                            tabIndex={0}
                             aria-label="Sin conexión"
+                            onClick={() =>
+                              setEditingProhibitedCell(`${rowIndex},${colIndex}`)
+                            }
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                setEditingProhibitedCell(`${rowIndex},${colIndex}`);
+                              }
+                            }}
                             className={`${COST_INPUT} inline-flex items-center justify-center border-dashed border-white/20 bg-white/[0.02] text-[10px] text-ink-subtle`}
                           >
                             Prohibida
@@ -658,10 +714,22 @@ const AssignmentPage: React.FC = () => {
                           <input
                             type="number"
                             aria-label={`Costo ${rowIndex + 1}, columna ${colIndex + 1}`}
-                            value={value}
+                            value={value ?? ''}
+                            autoFocus={prohibited}
+                            placeholder={prohibited ? 'Costo' : undefined}
+                            onFocus={(event) => {
+                              event.currentTarget.value = normalizeNumericInput(
+                                event.currentTarget.value
+                              );
+                            }}
                             onChange={(e) =>
                               updateCell(rowIndex, colIndex, e.target.value)
                             }
+                            onBlur={() => {
+                              if (matrix[rowIndex]?.[colIndex] === null) {
+                                setEditingProhibitedCell(null);
+                              }
+                            }}
                             className={[
                               COST_INPUT,
                               assignedCells.has(`${rowIndex},${colIndex}`) &&

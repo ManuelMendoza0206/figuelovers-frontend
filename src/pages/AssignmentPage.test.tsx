@@ -181,6 +181,61 @@ describe('AssignmentPage - el resultado nunca queda obsoleto', () => {
     expect(await screen.findByText('99')).toBeTruthy();
   });
 
+  it('envía al backend la matriz editada y no la matriz inicial', async () => {
+    montar();
+
+    const celda = document.querySelector(
+      'input[aria-label="Costo 1, columna 1"]'
+    ) as HTMLInputElement;
+    fireEvent.change(celda, { target: { value: '99' } });
+    calcular();
+
+    await screen.findByText(/resultado de la misión/i);
+    expect(runAssignment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cost_matrix: [
+          [99, 1, 1],
+          [1, 1, 1],
+          [1, 1, 1],
+        ],
+      }),
+      expect.any(AbortSignal)
+    );
+    expect(screen.getByText('15')).toBeTruthy();
+  });
+
+  it('reemplaza una celda Prohibida y envía el nuevo costo', async () => {
+    useAssignmentStore.getState().setMatrix([
+      [null, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9],
+    ]);
+    montar();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sin conexión' }));
+    const celdaProhibida = screen.getByRole('spinbutton', {
+      name: 'Costo 1, columna 1',
+    });
+    fireEvent.change(celdaProhibida, { target: { value: '13' } });
+
+    expect(useAssignmentStore.getState().matrix[0][0]).toBe(13);
+
+    calcular();
+
+    await screen.findByText(/resultado de la misión/i);
+    expect(runAssignment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cost_matrix: [
+          [13, 2, 3],
+          [4, 5, 6],
+          [7, 8, 9],
+        ],
+      }),
+      expect.any(AbortSignal)
+    );
+    expect(screen.getByText('15')).toBeTruthy();
+  });
+
   it('conserva la matriz, el resultado y el paso al volver de otra sección', async () => {
     const view = montar();
     calcular();
