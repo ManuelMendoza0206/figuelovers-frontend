@@ -227,4 +227,60 @@ describe('AssignmentPage - el resultado nunca queda obsoleto', () => {
       await screen.findByRole('alert')
     ).toBeTruthy();
   });
+
+  it('muestra ausencia de solución sin pintar asignaciones ni costo total', async () => {
+    runAssignment.mockResolvedValue({
+      ...resultado,
+      assignments: [],
+      total_cost: 0,
+    });
+    montar();
+
+    calcular();
+
+    expect(
+      await screen.findByText(/no existe una asignación factible para este grafo/i)
+    ).toBeTruthy();
+    expect(hayResultado()).toBe(false);
+    expect(screen.queryByText('0')).toBeNull();
+  });
+
+  it('mantiene las celdas prohibidas en la matriz de cada paso', async () => {
+    useAssignmentStore.getState().setMatrix([
+      [null, 4, 8],
+      [4, null, 6],
+      [7, 3, null],
+    ]);
+    runAssignment.mockResolvedValue({
+      ...resultado,
+      assignments: [
+        { row: 'Trabajador 1', col: 'Tarea B', cost: 4 },
+        { row: 'Trabajador 2', col: 'Tarea C', cost: 6 },
+        { row: 'Trabajador 3', col: 'Tarea A', cost: 7 },
+      ],
+      initial_cost_matrix: [
+        [100, 4, 8],
+        [4, 100, 6],
+        [7, 3, 100],
+      ],
+      steps: [
+        {
+          ...resultado.steps[0],
+          matrix: [
+            [0, 0, 4],
+            [0, 1, 2],
+            [4, 0, 3],
+          ],
+        },
+      ],
+    });
+
+    montar();
+    calcular();
+    await screen.findByText(/resultado de la misión/i);
+    fireEvent.click(screen.getByRole('button', { name: /ver proceso paso a paso/i }));
+
+    expect(screen.getAllByText('Prohibida').length).toBeGreaterThan(0);
+    expect(screen.queryByText('100')).toBeNull();
+  });
 });

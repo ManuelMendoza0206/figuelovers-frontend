@@ -86,7 +86,7 @@ export interface AssignmentAssignment {
 export interface AssignmentStepData {
   step: number;
   name: string;
-  matrix: number[][];
+  matrix: (number | null)[][];
   description: string;
   min_uncovered: number | null;
   /**

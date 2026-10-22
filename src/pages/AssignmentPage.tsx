@@ -7,8 +7,12 @@ import { Sidebar } from '../components/Sidebar';
 import { error as showError } from '../hooks/useToast';
 import { GraphServiceAPI, isCanceled } from '../services/api';
 import { extractApiErrorMessage } from '../utils/apiError';
+import type { AssignmentResultData } from '../types/graph';
 import type { GraphAssignmentTransfer } from '../utils/graphToMatrix';
-import { translateGraphToCostMatrix } from '../utils/graphToMatrix';
+import {
+  serializeAssignmentMatrix,
+  translateGraphToCostMatrix,
+} from '../utils/graphToMatrix';
 import { useAssignmentStore } from '../store/useAssignmentStore';
 import { Button } from '../ui';
 
@@ -51,6 +55,40 @@ const CONTROL_CAPTION =
 const CONTROL_FIELD =
   'bg-transparent text-ink focus:outline-none';
 
+const hasFeasibleAssignment = (
+  response: AssignmentResultData,
+  costMatrix: (number | null)[][],
+  rowLabels: string[],
+  colLabels: string[],
+  rows: number,
+  cols: number
+): boolean => {
+  const expectedAssignments = Math.min(rows, cols);
+  if (response.assignments.length !== expectedAssignments) return false;
+
+  const rowIndexes = new Map(rowLabels.slice(0, rows).map((label, index) => [label, index]));
+  const colIndexes = new Map(colLabels.slice(0, cols).map((label, index) => [label, index]));
+  const usedRows = new Set<number>();
+  const usedCols = new Set<number>();
+
+  return response.assignments.every(({ row, col }) => {
+    const rowIndex = rowIndexes.get(row);
+    const colIndex = colIndexes.get(col);
+    if (
+      rowIndex === undefined ||
+      colIndex === undefined ||
+      usedRows.has(rowIndex) ||
+      usedCols.has(colIndex) ||
+      costMatrix[rowIndex]?.[colIndex] === null
+    ) {
+      return false;
+    }
+    usedRows.add(rowIndex);
+    usedCols.add(colIndex);
+    return true;
+  });
+};
+
 const AssignmentPage: React.FC = () => {
   const location = useLocation();
   const returnTo = new URLSearchParams(location.search).get('from') ?? '/editor';
@@ -88,14 +126,14 @@ const AssignmentPage: React.FC = () => {
   } = useAssignmentStore();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [noSolution, setNoSolution] = useState(false);
 
   /** Request en vuelo, para poder abortarlo al relanzar el calculo. */
   const abortInFlight = useRef<AbortController | null>(null);
 
   /**
-   * Traduccion desde la pizarra. Las celdas sin conexion arrancan en 0
-   * y quedan editables; el objetivo se elige aca y la traduccion se
-   * recalcula cuando cambia.
+   * Traduccion desde la pizarra. Las celdas sin conexion son null y quedan
+   * bloqueadas; el objetivo se elige aca y la traduccion se recalcula.
    */
   const boardTranslation = useMemo(() => {
     if (!graphTransfer) return null;
@@ -165,6 +203,7 @@ const AssignmentPage: React.FC = () => {
     setCols(nextCols.length);
     setResult(null);
     setResultSignature(null);
+    setNoSolution(false);
     setShowProcess(false);
     setCurrentStep(0);
     setBoardSource(true);
@@ -232,7 +271,7 @@ const AssignmentPage: React.FC = () => {
               cIndex === colIndex
                 ? Number.isFinite(Number(value))
                   ? Number(value)
-                  : 0
+                  : cell
                 : cell
             )
           : row
@@ -250,10 +289,11 @@ const AssignmentPage: React.FC = () => {
 
     setLoading(true);
     setErrorMessage(null);
+    setNoSolution(false);
 
     try {
       const payload = {
-        cost_matrix: matrix,
+        cost_matrix: serializeAssignmentMatrix(matrix, maximize),
         row_labels: rowLabels.slice(0, rows),
         col_labels: colLabels.slice(0, cols),
         maximize,
@@ -262,6 +302,13 @@ const AssignmentPage: React.FC = () => {
         payload,
         controller.signal
       );
+      if (!hasFeasibleAssignment(response, matrix, rowLabels, colLabels, rows, cols)) {
+        setResult(null);
+        setResultSignature(null);
+        setNoSolution(true);
+        return;
+      }
+
       // Sellamos la firma: si el usuario edita algo despues, el
       // resultado deja de mostrarse solo.
       setResultSignature(inputSignature);
@@ -276,6 +323,7 @@ const AssignmentPage: React.FC = () => {
 
       setResult(null);
       setResultSignature(null);
+      setNoSolution(false);
       const message = extractApiErrorMessage(
         err,
         'No se pudo calcular la asignación.'
@@ -310,7 +358,10 @@ const AssignmentPage: React.FC = () => {
    * hace efecto. Las filas/columnas de padding quedan apagadas pero no se
    * esconden: el padding es parte del relato del metodo hungaro.
    */
-  const renderStepMatrix = (matrixValue: number[][], isResultStep = false) => {
+  const renderStepMatrix = (
+    matrixValue: (number | null)[][],
+    isResultStep = false
+  ) => {
     const stepRows = matrixValue.length;
     const stepCols = matrixValue[0]?.length ?? 0;
 
@@ -341,8 +392,18 @@ const AssignmentPage: React.FC = () => {
                   const value = matrixValue[rowIndex]?.[colIndex];
                   const isDummy =
                     dummyRows.has(rowIndex) || dummyCols.has(colIndex);
+                  // El backend recibe una penalización numérica para las
+                  // celdas prohibidas porque su contrato solo acepta
+                  // number[][]. La máscara original conserva su semántica
+                  // durante todas las transformaciones del algoritmo.
+                  const prohibited =
+                    !isDummy &&
+                    (matrix[rowIndex]?.[colIndex] === null ||
+                      value === null ||
+                      value === undefined);
                   const previousValue = prevStepMatrix[rowIndex]?.[colIndex];
-                  const changed = !isDummy && value !== previousValue;
+                  const changed =
+                    !prohibited && !isDummy && value !== previousValue;
                   const assigned =
                     isResultStep &&
                     !isDummy &&
@@ -354,6 +415,8 @@ const AssignmentPage: React.FC = () => {
                       className={`rounded-lg border px-2 py-1 text-center font-mono tabular-nums ${
                         isDummy
                           ? 'border-white/5 text-ink-subtle'
+                          : prohibited
+                            ? 'border-dashed border-white/20 bg-white/[0.02] text-ink-subtle'
                           : assigned
                             ? 'border-mission bg-mission/15 font-bold text-mission'
                             : changed
@@ -361,7 +424,7 @@ const AssignmentPage: React.FC = () => {
                               : 'border-white/10 text-ink'
                       }`}
                     >
-                      {value ?? '—'}
+                      {prohibited ? 'Prohibida' : value ?? '—'}
                     </td>
                   );
                 })}
@@ -393,6 +456,10 @@ const AssignmentPage: React.FC = () => {
       <span className="flex items-center gap-1.5">
         <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-sm border border-white/15 bg-white/5" />
         fila o columna de padding
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-sm border border-dashed border-white/20 bg-white/[0.02]" />
+        celda prohibida
       </span>
     </p>
   );
@@ -499,7 +566,7 @@ const AssignmentPage: React.FC = () => {
         items={[
           'Cada fila representa un trabajador y cada columna una tarea: no se usan los nodos del grafo.',
           'Al traducir una constelación, las aristas dirigidas completan [origen][destino] y las no dirigidas completan ambos sentidos.',
-          'Las celdas sin conexión empiezan en 0 y deben revisarse: no significan rutas prohibidas. Un 0 es el costo más barato.',
+          'Las celdas sin conexión aparecen como prohibidas y nunca se envían como costo real. Un 0 sí representa una conexión válida de costo cero.',
           'Para maximizar, cada valor se transforma como máximo − valor.',
           'Las matrices rectangulares se cuadran con filas o columnas ficticias; el límite es 20 × 20.',
           'Los pasos muestran una traza didáctica; la asignación final la resuelve el solver de asignación lineal.',
@@ -520,11 +587,10 @@ const AssignmentPage: React.FC = () => {
               : 'conexiones'}
             . Las{' '}
             <strong>{boardTranslation.translation.emptyCells.length}</strong> celdas
-            sin conexión quedaron en{' '}
-            <span className="font-mono font-bold">0</span> y son editables.
-            {' '}<strong>Ojo:</strong> el 0 es el valor más barato, así que si las
-            dejás así el algoritmo va a elegir justamente esas parejas. Poné el
-            costo real, o un valor alto si querés que queden prohibidas.
+            sin conexión aparecen como{' '}
+            <span className="font-mono font-bold">Prohibida</span> y no son
+            editables. Los costos de las conexiones existentes sí se pueden
+            modificar.
           </span>
         </p>
       )}
@@ -575,25 +641,39 @@ const AssignmentPage: React.FC = () => {
                         className={LABEL_INPUT}
                       />
                     </td>
-                    {Array.from({ length: cols }, (_, colIndex) => (
+                    {Array.from({ length: cols }, (_, colIndex) => {
+                      const value = matrix[rowIndex]?.[colIndex] ?? null;
+                      const prohibited = value === null;
+                      return (
                       <td key={`cell-${rowIndex}-${colIndex}`} className="px-1 py-1 font-mono">
-                        <input
-                          type="number"
-                          aria-label={`Costo ${rowIndex + 1}, columna ${colIndex + 1}`}
-                          value={matrix[rowIndex]?.[colIndex] ?? 0}
-                          onChange={(e) =>
-                            updateCell(rowIndex, colIndex, e.target.value)
-                          }
-                          className={[
-                            COST_INPUT,
-                            assignedCells.has(`${rowIndex},${colIndex}`) &&
-                              'border-mission bg-mission/15 text-mission',
-                          ]
-                            .filter(Boolean)
-                            .join(' ')}
-                        />
+                        {prohibited ? (
+                          <span
+                            role="img"
+                            aria-label="Sin conexión"
+                            className={`${COST_INPUT} inline-flex items-center justify-center border-dashed border-white/20 bg-white/[0.02] text-[10px] text-ink-subtle`}
+                          >
+                            Prohibida
+                          </span>
+                        ) : (
+                          <input
+                            type="number"
+                            aria-label={`Costo ${rowIndex + 1}, columna ${colIndex + 1}`}
+                            value={value}
+                            onChange={(e) =>
+                              updateCell(rowIndex, colIndex, e.target.value)
+                            }
+                            className={[
+                              COST_INPUT,
+                              assignedCells.has(`${rowIndex},${colIndex}`) &&
+                                'border-mission bg-mission/15 text-mission',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
+                          />
+                        )}
                       </td>
-                    ))}
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -626,7 +706,16 @@ const AssignmentPage: React.FC = () => {
         </div>
       )}
 
-        {freshResult && (
+      {noSolution && (
+        <div
+          role="status"
+          className="rounded-2xl border border-mission/30 bg-mission/10 p-4 text-sm font-medium text-mission"
+        >
+          No existe una asignación factible para este grafo.
+        </div>
+      )}
+
+      {freshResult && (
           <section
             className="glass-panel animate-in fade-in slide-in-from-top-2 min-w-0 rounded-2xl border border-mission/25 p-5"
             aria-live="polite"
@@ -643,6 +732,7 @@ const AssignmentPage: React.FC = () => {
                   {showProcess ? 'Ocultar proceso' : 'Ver proceso paso a paso'}
                 </button>
               )}
+
             </div>
 
             <h2 className="mt-2 font-display text-lg font-bold text-ink">Resultado de la misión</h2>
