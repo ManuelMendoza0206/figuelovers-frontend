@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlgorithmHelp } from '../components/AlgorithmHelp';
 import { BackButton } from '../components/BackButton';
 import { JohnsonResultView } from '../components/JohnsonResultView';
 import { Sidebar } from '../components/Sidebar';
@@ -205,18 +204,6 @@ const JohnsonPage: React.FC = () => {
           </div>
         )}
       </div>
-
-      <AlgorithmHelp
-        title="Cómo funciona Johnson"
-        summary="Calcula la distancia mínima entre todos los pares de nodos de un grafo dirigido."
-        items={[
-          'Todas las aristas deben ser dirigidas; los pesos pueden ser negativos.',
-          'El servicio agrega una fuente artificial y ejecuta Bellman-Ford para detectar ciclos negativos y obtener potenciales.',
-          'Después vuelve a ponderar las aristas y ejecuta Dijkstra desde cada nodo para obtener distancias y caminos.',
-          '∞ significa que no existe camino. Un ciclo negativo indica que no se pueden definir distancias mínimas.',
-          'Elegí origen y destino para ver el camino. Al calcular, el resultado queda resaltado en la pizarra y podés consultar la matriz completa.',
-        ]}
-      />
 
       {freshResult && (
         <JohnsonResultView

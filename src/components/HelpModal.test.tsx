@@ -1,40 +1,83 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import React, { useState } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { EDITOR_EVENTS } from '../lib/editorEvents';
 import { HelpModal } from './HelpModal';
 
-describe('HelpModal algorithm details', () => {
-  afterEach(() => {
-    cleanup();
+const HelpHarness: React.FC<{ initialPath: string }> = ({ initialPath }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <MemoryRouter initialEntries={[initialPath]}>
+      <HelpModal
+        isOpen={isOpen}
+        onOpen={() => setIsOpen(true)}
+        onClose={() => setIsOpen(false)}
+      />
+    </MemoryRouter>
+  );
+};
+
+const renderHelp = (initialPath: string) => render(<HelpHarness initialPath={initialPath} />);
+
+const openHelp = () => {
+  fireEvent.click(screen.getByRole('button', { name: 'Abrir ayuda' }));
+};
+
+afterEach(cleanup);
+
+describe('HelpModal contextual', () => {
+  it('abre la guía de la sección actual con pasos y botones concretos', () => {
+    renderHelp('/trees');
+    openHelp();
+
+    expect(screen.getByRole('dialog', { name: 'Construir y recorrer' })).toBeTruthy();
+    expect(screen.getByText('Paso a paso')).toBeTruthy();
+    expect(screen.getByText('Botones y controles')).toBeTruthy();
+    expect(screen.getByText('Recorrer')).toBeTruthy();
+    expect(screen.getByText('Enviar al editor')).toBeTruthy();
   });
 
-  it('renders five algorithm cards and expands their accessible details', () => {
-    render(<HelpModal />);
-    fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
+  it('cambia el contenido al cambiar de sección', () => {
+    const { unmount } = renderHelp('/johnson');
+    openHelp();
 
-    expect(screen.getByText('Rutas interestelares (Johnson)')).toBeTruthy();
-    expect(screen.getByText('Comando de misión (Asignación húngara)')).toBeTruthy();
-    expect(screen.getByText('Esquina Noroeste (transporte)')).toBeTruthy();
-    expect(screen.getByText('Árboles binarios de búsqueda')).toBeTruthy();
-    expect(screen.getByText('Ordenamiento en barras (Sort)')).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: /JOHNSON/ })).toBeTruthy();
+    expect(screen.getByText('Calcular')).toBeTruthy();
+    expect(screen.getByText('Origen / Destino')).toBeTruthy();
 
-    const treeCard = screen.getByRole('button', { name: /Árboles binarios de búsqueda/ });
-    expect(treeCard.getAttribute('aria-expanded')).toBe('false');
-    fireEvent.click(treeCard);
-    expect(treeCard.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByText(/Pre-order visita raíz/)).toBeTruthy();
-  });
-});
+    unmount();
 
-describe('HelpModal - atajos del lienzo', () => {
-  afterEach(() => {
-    cleanup();
+    renderHelp('/sort');
+    openHelp();
+
+    expect(screen.getByRole('dialog', { name: /SORT/ })).toBeTruthy();
+    expect(screen.getByText('Aplicar lista / Vaciar')).toBeTruthy();
+    expect(screen.getByText('Reproducir / Pausar / Repetir')).toBeTruthy();
   });
 
-  it('se abre y se cierra cuando el lienzo pide ayuda (atajo H)', () => {
-    render(<HelpModal />);
+  it('incluye los atajos del lienzo solo en el editor', () => {
+    renderHelp('/editor');
+    openHelp();
 
-    expect(screen.queryByText('Rutas interestelares (Johnson)')).toBeNull();
+    expect(screen.getByText('Atajos del lienzo')).toBeTruthy();
+    expect(screen.getByText('Añadir nodo (E)')).toBeTruthy();
+    expect(screen.getByText('Limpiar todo')).toBeTruthy();
+  });
+
+  it('cierra desde el botón del panel', () => {
+    renderHelp('/northwest');
+    openHelp();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar panel de ayuda' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('se abre y se cierra con el atajo H del editor', () => {
+    renderHelp('/editor');
 
     const pedirAyuda = () =>
       act(() => {
@@ -42,44 +85,9 @@ describe('HelpModal - atajos del lienzo', () => {
       });
 
     pedirAyuda();
-    expect(screen.getByText('Rutas interestelares (Johnson)')).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Construí y conectá tu grafo' })).toBeTruthy();
 
     pedirAyuda();
-    expect(screen.queryByText('Rutas interestelares (Johnson)')).toBeNull();
-  });
-
-  it('lista la tecla de cada herramienta', () => {
-    render(<HelpModal />);
-    fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
-
-    expect(screen.getByText('Abrir esta ayuda')).toBeTruthy();
-    expect(screen.getByText('Limpiar todo')).toBeTruthy();
-    expect(screen.getByText('Volver a Interactuar')).toBeTruthy();
-  });
-});
-
-describe('HelpModal - constelaciones', () => {
-  afterEach(() => {
-    cleanup();
-  });
-
-  it('explica qué son, qué se puede editar y cómo se usan los algoritmos', () => {
-    render(<HelpModal />);
-    fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
-
-    const card = screen.getByRole('button', { name: /Constelaciones famosas/ });
-    expect(card.getAttribute('aria-expanded')).toBe('false');
-
-    fireEvent.click(card);
-    expect(card.getAttribute('aria-expanded')).toBe('true');
-
-    // Resumen visible siempre (sin desplegar también se lee).
-    expect(screen.getByText(/Plantillas de figuras reales del cielo/)).toBeTruthy();
-
-    // Explicación desplegable.
-    expect(screen.getByText(/La forma es fija/)).toBeTruthy();
-    expect(screen.getByText(/Johnson exige aristas dirigidas/)).toBeTruthy();
-    expect(screen.getByText('Restaurar original')).toBeTruthy();
-    expect(screen.getByText(/JSON normal/)).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

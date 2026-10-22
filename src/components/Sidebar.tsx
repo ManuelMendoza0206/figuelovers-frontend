@@ -210,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ workbench, children }) => {
         </div>
       </div>
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto p-4 md:p-5">
+      <div className="custom-scrollbar flex-1 overflow-y-auto p-4 pb-24 md:p-5 md:pb-28">
         {workbench ? children : (
           <>
             {selectedNode && (

@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AlertTriangle, PackageCheck, Truck } from 'lucide-react';
-import { AlgorithmHelp } from '../components/AlgorithmHelp';
 import { BackButton } from '../components/BackButton';
 import { Sidebar } from '../components/Sidebar';
 import { GraphServiceAPI, isCanceled } from '../services/api';
@@ -246,18 +245,6 @@ const NorthwestPage: React.FC = () => {
             </div>
           )}
         </header>
-
-        <AlgorithmHelp
-          title="Cómo funciona la esquina noroeste"
-          summary="Construye una solución inicial de transporte desde la celda superior izquierda. No optimiza el costo."
-          items={[
-            'Asigná roles de origen y destino y completá sus ofertas y demandas; los roles también se pueden inferir de las aristas.',
-            'En cada paso se asigna el mínimo entre la oferta y la demanda restantes, y se avanza al cerrar una fila o una columna.',
-            'Si los totales no coinciden, se agrega un origen o destino ficticio de costo cero (dummy).',
-            'Una celda sin arista es una ruta bloqueada (—), no un costo cero. Si recibe cantidad, el resultado se marca NO FACTIBLE.',
-            'Si la oferta y la demanda se agotan a la vez, se marca una celda básica degenerada con asignación cero.',
-          ]}
-        />
 
         <section className="glass-panel rounded-2xl p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">

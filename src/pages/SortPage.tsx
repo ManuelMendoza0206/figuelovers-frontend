@@ -12,7 +12,6 @@ import {
 import React, { useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { AlgorithmHelp } from '../components/AlgorithmHelp';
 import { BackButton } from '../components/BackButton';
 import { Sidebar } from '../components/Sidebar';
 import { SortWorkbench } from '../components/SortWorkbench';
@@ -114,19 +113,6 @@ const SortPage: React.FC = () => {
             Algoritmos · sort
           </span>
         </div>
-
-        <AlgorithmHelp
-          title="Cómo funciona el ordenamiento"
-          summary="Elegí un algoritmo, cargá números y mirá cómo se reacomodan las barras paso a paso."
-          items={[
-            'Elegí Burbuja, Selección o Inserción en el panel Sort. Los tres ordenan de menor a mayor.',
-            'Cargá tus números separados por coma (o espacios) o generá una lista aleatoria de 2 a 40 valores.',
-            'Amarillo = comparación; violeta = movimiento; celeste = mínimo o clave; turquesa = ya está en su lugar.',
-            'Controlá la velocidad con el deslizador, pausá, avanzá paso a paso o arrastrá la barra de progreso.',
-            'Burbuja empuja el mayor al final de cada pasada; selección lleva el mínimo al frente; inserción levanta cada número y lo desliza a la izquierda.',
-            'La lista, el algoritmo y la velocidad se conservan al cambiar de sección.',
-          ]}
-        />
 
         <section className="sort-panel glass-panel flex min-h-[460px] flex-1 flex-col overflow-hidden rounded-2xl md:min-h-0">
           <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3">

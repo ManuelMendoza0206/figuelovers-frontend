@@ -1,4 +1,4 @@
-import { Database, Download, List, Trash2, Upload } from 'lucide-react';
+import { Database, Download, HelpCircle, List, Orbit, Trash2, Upload } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { error, success } from '../hooks/useToast';
 import { GraphServiceAPI } from '../services/api';
@@ -20,7 +20,6 @@ import { useEditorEvent } from '../hooks/useEditorEvent';
 
 import { AdjListModal } from './AdjListModal';
 import { ConfirmDialog } from './ConfirmDialog';
-import { HelpModal } from './HelpModal';
 import { MatrixModal } from './MatrixModal';
 
 const describeError = (
@@ -38,7 +37,12 @@ const Spinner = () => (
   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border border-t-brand" />
 );
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  isHelpOpen?: boolean;
+  onOpenHelp?: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ isHelpOpen = false, onOpenHelp }) => {
   const {
     nodes,
     edges,
@@ -243,7 +247,20 @@ export const Navbar: React.FC = () => {
 
             {/* Vistas (Teal) */}
             <div className="flex items-center gap-2">
-              <HelpModal />
+              <IconButton
+                onClick={onOpenHelp}
+                aria-label="Ayuda"
+                aria-haspopup="dialog"
+                aria-expanded={isHelpOpen}
+                title="Abrir la ayuda de esta sección"
+                className="flex items-center gap-2 rounded-md border border-brand/25 bg-brand/10 px-3 py-1.5 text-brand transition-colors hover:bg-brand/20"
+              >
+                <span className="relative flex h-4 w-4 items-center justify-center" aria-hidden="true">
+                  <Orbit className="h-4 w-4" />
+                  <HelpCircle className="absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full bg-surface" />
+                </span>
+                <span className="hidden sm:inline font-semibold">Ayuda</span>
+              </IconButton>
 
               <IconButton
                 onClick={handleShowMatrix}

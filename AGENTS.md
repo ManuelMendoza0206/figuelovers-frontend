@@ -37,7 +37,7 @@
 
 ## UI conventions
 - Tailwind 4 via `@tailwindcss/vite`; there is no `tailwind.config`. Theme tokens live in `src/index.css` under `@theme`; use tokens/classes such as `text-ink`, `text-ink-muted`, `bg-surface`, `border-border`, `brand`, `mission`, `glass-panel`, and `space-shell` instead of hardcoded palette values.
-- Each algorithm page has an `AlgorithmHelp` text panel; keep it and `HelpModal` in sync with behavior changes.
+- Help lives in a contextual floating drawer: `HelpModal` plus `src/help/helpSections.tsx`. It is route-aware, so update the matching section when a page's buttons or flow change.
 
 ## README drift (trust the code)
 - The README still documents tree reconstruction and entering values one by one. The current trees UI accepts comma-separated batches and has no reconstruction; `api.ts` has no `reconstructTree`.

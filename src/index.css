@@ -221,6 +221,16 @@ select {
     --enter-x: 0.5rem;
     --enter-y: 0rem;
   }
+
+  /* El panel de ayuda entra desde el borde derecho; el fondo aparece
+     con un fade corto para que el foco quede en el contenido. */
+  .help-backdrop-enter {
+    animation: help-fade-in 180ms ease-out both;
+  }
+
+  .help-drawer-enter {
+    animation: help-drawer-in 260ms var(--ease-confident) both;
+  }
 }
 
 @keyframes enter-rise {
@@ -229,6 +239,23 @@ select {
     transform:
       translate(var(--enter-x, 0rem), var(--enter-y, 0rem))
       scale(var(--enter-scale, 1));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes help-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes help-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
   }
 
   to {
@@ -872,6 +899,8 @@ select {
   .rise-in,
   .drift,
   .animate-in,
+  .help-backdrop-enter,
+  .help-drawer-enter,
   .animate-ping,
   .space-field,
   .field-stars,
