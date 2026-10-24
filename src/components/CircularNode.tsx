@@ -144,6 +144,13 @@ const CircularNode: React.FC<
         />
       )}
 
+      {data.isPathNode === true && (
+        <span
+          aria-hidden="true"
+          className="star-path pointer-events-none absolute -inset-[10px] rounded-full"
+        />
+      )}
+
       {/* La etiqueta sale de la caja de 76px en posicion absoluta: ni el
           ancho ni los porcentajes de los handles se ven afectados. */}
       <span

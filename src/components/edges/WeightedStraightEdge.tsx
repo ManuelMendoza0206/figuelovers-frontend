@@ -2,7 +2,7 @@ import React from 'react';
 import type { EdgeProps } from 'reactflow';
 import { BaseEdge, EdgeLabelRenderer, getStraightPath } from 'reactflow';
 
-import { BEAM_COLOR, BRAND_COLOR } from '../../lib/graphEdge';
+import { BEAM_COLOR, BRAND_COLOR, PATH_COLOR } from '../../lib/graphEdge';
 import {
     CURVE_CONTROL_POINT_OFFSET,
     CURVE_LABEL_OFFSET,
@@ -115,14 +115,17 @@ export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
    * las aristas que la tocan: el resto se apaga para que se lea la
    * relacion. Sin seleccion, todas encendidas.
    */
-  const isLit = data?.isLit ?? true;
+  const isPath = data?.isPath ?? false;
+  const isLit = isPath ? true : (data?.isLit ?? true);
 
   const isDirected = markerEnd !== undefined && markerEnd !== null;
 
-  const showPulse = isLit && (isDirected || selected);
+  const showPulse = isLit && (isDirected || selected || isPath);
 
-  const haloWidth = selected ? 17 : 11;
-  const haloOpacity = isLit ? (selected ? 0.26 : 0.13) : 0.045;
+  const haloWidth = isPath ? 15 : selected ? 17 : 11;
+  const haloOpacity = isPath ? 0.3 : isLit ? (selected ? 0.26 : 0.13) : 0.045;
+  const haloColor = isPath ? PATH_COLOR : BEAM_COLOR;
+  const pulseColor = isPath ? '#ffe9b8' : '#d8fffb';
 
   /* Cada haz viaja a su ritmo y entra en distinta fase, para que el
      campo de pulsos no se lea como un metronomo. */
@@ -138,7 +141,7 @@ export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
         className="pointer-events-none"
         d={edgePath}
         fill="none"
-        stroke={BEAM_COLOR}
+        stroke={haloColor}
         strokeWidth={haloWidth}
         strokeOpacity={haloOpacity}
         strokeLinecap="round"
@@ -154,7 +157,7 @@ export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
         <circle
           className="beam-pulse"
           r={selected ? 3.1 : 2.5}
-          fill="#d8fffb"
+          fill={pulseColor}
           aria-hidden="true"
           style={
             {
@@ -188,11 +191,13 @@ export function WeightedStraightEdge(props: EdgeProps<WeightedEdgeData>) {
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              color: selected ? BRAND_COLOR : '#c8d6f2',
-              borderColor: selected ? BRAND_COLOR : 'rgb(148 170 214 / 0.28)',
-              boxShadow: selected
-                ? '0 0 16px rgb(114 230 224 / 0.35)'
-                : '0 6px 16px rgb(0 0 0 / 0.5)',
+              color: isPath ? PATH_COLOR : selected ? BRAND_COLOR : '#c8d6f2',
+              borderColor: isPath ? PATH_COLOR : selected ? BRAND_COLOR : 'rgb(148 170 214 / 0.28)',
+              boxShadow: isPath
+                ? '0 0 16px rgb(255 214 132 / 0.35)'
+                : selected
+                  ? '0 0 16px rgb(114 230 224 / 0.35)'
+                  : '0 6px 16px rgb(0 0 0 / 0.5)',
               zIndex: selected ? 50 : 30,
             }}
           >

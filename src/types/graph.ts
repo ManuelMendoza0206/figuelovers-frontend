@@ -172,7 +172,7 @@ export interface AssignmentAssignment {
 export interface AssignmentStepData {
   step: number;
   name: string;
-  matrix: number[][];
+  matrix: (number | null)[][];
   description: string;
   min_uncovered: number | null;
   /**
@@ -286,10 +286,6 @@ export interface TreeTraverseResult {
   visits: { id: string; value: number }[];
   node_ids: string[];
   values: number[];
-}
-
-export interface TreeReconstructResult extends TreeBuildResult {
-  is_bst: boolean;
 }
 
 export interface GraphFileMetadata {

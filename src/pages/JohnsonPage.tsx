@@ -1,23 +1,34 @@
 import React, { useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BackButton } from '../components/BackButton';
+import { JohnsonResultView } from '../components/JohnsonResultView';
 import { Sidebar } from '../components/Sidebar';
 import { GraphServiceAPI } from '../services/api';
 import { useGraphStore } from '../store/useGraphStore';
-import type { JohnsonResultData } from '../types/graph';
+import {
+  buildJohnsonGraphSignature,
+  getJohnsonPath,
+  useJohnsonResult,
+} from '../store/useJohnsonResult';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { buildGraphPayload } from '../utils/graphFile';
 
 const JohnsonPage: React.FC = () => {
   const { nodes, edges, updateNodeData } = useGraphStore();
   const location = useLocation();
+  const navigate = useNavigate();
   const returnTo = new URLSearchParams(location.search).get('from') ?? '/editor';
-  const [result, setResult] = useState<JohnsonResultData | null>(null);
-  const [resultGraphSignature, setResultGraphSignature] = useState<string | null>(null);
+  const {
+    result,
+    graphSignature: resultGraphSignature,
+    source: storedSource,
+    target: storedTarget,
+    setJohnsonResult,
+    setJohnsonEndpoints,
+    clearJohnsonResult,
+  } = useJohnsonResult();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [sourceOverride, setSourceOverride] = useState<string>('');
-  const [targetOverride, setTargetOverride] = useState<string>('');
   const [renames, setRenames] = useState<Record<string, string>>({});
 
   const nodeList = useMemo(() => nodes.map((node) => node.id), [nodes]);
@@ -32,16 +43,7 @@ const JohnsonPage: React.FC = () => {
    * topologia y los pesos: renombrar un nodo no cambia las distancias.
    */
   const graphSignature = useMemo(
-    () =>
-      JSON.stringify({
-        nodes: nodes.map((node) => node.id),
-        edges: edges.map((edge) => [
-          edge.source,
-          edge.target,
-          edge.data?.weight ?? null,
-          edge.data?.is_directed ?? null,
-        ]),
-      }),
+    () => buildJohnsonGraphSignature(nodes, edges),
     [nodes, edges]
   );
 
@@ -64,12 +66,12 @@ const JohnsonPage: React.FC = () => {
    * lugar de dejar el select apuntando a algo inexistente.
    */
   const source =
-    sourceOverride && nodeList.includes(sourceOverride)
-      ? sourceOverride
+    storedSource && nodeList.includes(storedSource)
+      ? storedSource
       : (nodeList[0] ?? '');
   const target =
-    targetOverride && nodeList.includes(targetOverride)
-      ? targetOverride
+    storedTarget && nodeList.includes(storedTarget)
+      ? storedTarget
       : (nodeList[1] ?? nodeList[0] ?? '');
 
   /**
@@ -109,8 +111,11 @@ const JohnsonPage: React.FC = () => {
     try {
       const payload = buildGraphPayload(nodes, edges);
       const response = await GraphServiceAPI.runJohnson(payload);
-      setResultGraphSignature(graphSignature);
-      setResult(response);
+      // El resultado vive en el store para no perderse al salir de esta
+      // pagina. Despues de calcular vamos a la pizarra de origen: el
+      // camino queda resaltado y el panel flotante conserva lo actual.
+      setJohnsonResult(response, graphSignature, source, target);
+      navigate(returnTo);
     } catch (err: unknown) {
       // Mismo util que el resto de la app: antes esto era una tercera
       // variante del parseo de errores, que solo miraba `.message`.
@@ -119,31 +124,27 @@ const JohnsonPage: React.FC = () => {
         'No se pudo calcular Johnson.'
       );
       setErrorMessage(message);
-      setResult(null);
-      setResultGraphSignature(null);
+      clearJohnsonResult();
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedPath =
-    freshResult && source && target
-      ? freshResult.paths?.[source]?.[target] ?? []
-      : [];
+  const selectedPath = getJohnsonPath(freshResult, source, target);
 
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden text-ink">
       <main className="flex min-w-0 flex-1 flex-col gap-6 overflow-auto p-6">
       <div className="flex items-center justify-between gap-4">
         <BackButton to={returnTo} />
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">route atlas / 05</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">algoritmo</span>
       </div>
       <div className="glass-panel rounded-2xl p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="eyebrow">Nivel 05 · rutas interestelares</p>
-            <h1 className="mt-2 font-display text-2xl font-extrabold text-ink">Cartografía de rutas</h1>
-            <p className="mt-1 text-sm text-ink-muted">Calcula caminos mínimos entre todos los sistemas de una constelación dirigida.</p>
+            <p className="eyebrow">Camino mínimo</p>
+            <h1 className="mt-2 font-display text-2xl font-extrabold text-ink">JOHNSON</h1>
+            <p className="mt-1 text-sm text-ink-muted">Calcula todos contra todos en un grafo dirigido. Al calcular vas a la pizarra: el camino queda resaltado y el resultado queda flotando abajo.</p>
           </div>
 
           <button
@@ -152,7 +153,7 @@ const JohnsonPage: React.FC = () => {
             disabled={loading || nodeList.length === 0}
             className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? 'Calculando…' : 'Ejecutar Johnson'}
+            {loading ? 'Calculando…' : 'Calcular'}
           </button>
         </div>
 
@@ -181,15 +182,11 @@ const JohnsonPage: React.FC = () => {
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{errorMessage}</div>
         )}
 
-        {freshResult && freshResult.has_negative_cycle && (
-          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">{freshResult.message ?? 'El grafo contiene un ciclo de peso negativo.'}</div>
-        )}
-
         {nodeList.length > 0 && (
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <label className="text-sm text-ink-muted">
               Origen
-              <select value={source} onChange={(e) => setSourceOverride(e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink">
+              <select value={source} onChange={(e) => setJohnsonEndpoints(e.target.value, target)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink">
                 {nodeList.map((nodeId) => (
                   <option key={nodeId} value={nodeId}>{displayName(nodeId)}</option>
                 ))}
@@ -198,7 +195,7 @@ const JohnsonPage: React.FC = () => {
 
             <label className="text-sm text-ink-muted">
               Destino
-              <select value={target} onChange={(e) => setTargetOverride(e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink">
+              <select value={target} onChange={(e) => setJohnsonEndpoints(source, e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1328] p-2 text-ink">
                 {nodeList.map((nodeId) => (
                   <option key={nodeId} value={nodeId}>{displayName(nodeId)}</option>
                 ))}
@@ -208,46 +205,15 @@ const JohnsonPage: React.FC = () => {
         )}
       </div>
 
-      {freshResult && !freshResult.has_negative_cycle && (
-        <div className="grid gap-6 lg:grid-cols-[1.6fr_0.9fr]">
-          <div className="glass-panel overflow-hidden rounded-2xl">
-            <div className="overflow-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-brand/10">
-                  <tr>
-                    <th className="border-b border-white/10 px-3 py-2 font-semibold text-brand">Origen</th>
-                    {nodeList.map((nodeId) => (
-                      <th key={nodeId} className="border-b border-white/10 px-3 py-2 font-semibold text-brand">{displayName(nodeId)}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {nodeList.map((sourceId) => (
-                    <tr key={sourceId}>
-                      <td className="border-b border-white/10 px-3 py-2 font-semibold text-ink">{displayName(sourceId)}</td>
-                      {nodeList.map((targetId) => {
-                        const distance = freshResult.distances[sourceId]?.[targetId];
-                        return (
-                          <td key={`${sourceId}-${targetId}`} className={`border-b border-white/10 px-3 py-2 font-mono ${sourceId === source && targetId === target ? 'bg-brand/15 font-bold text-brand' : 'text-ink-muted'}`}>
-                            {distance === null || distance === undefined ? '∞' : distance}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="glass-panel rounded-2xl border-brand/25 p-4">
-            <h2 className="font-display text-base font-bold text-ink">Ruta seleccionada</h2>
-            <p className="mt-2 text-sm text-ink-muted">{displayName(source)} → {displayName(target)}</p>
-            <div className="mt-4 rounded-xl border border-brand/25 bg-brand/10 p-4 text-sm font-semibold text-brand shadow-[0_0_28px_rgba(114,230,224,0.1)]">
-              {selectedPath.length > 0 ? selectedPath.map((nodeId) => displayName(nodeId)).join(' → ') : 'No hay camino válido entre estos nodos.'}
-            </div>
-          </div>
-        </div>
+      {freshResult && (
+        <JohnsonResultView
+          result={freshResult}
+          nodeIds={nodeList}
+          source={source}
+          target={target}
+          getLabel={displayName}
+          selectedPath={selectedPath}
+        />
       )}
       </main>
       <aside className="h-full shrink-0" aria-label="Panel de propiedades y herramientas">

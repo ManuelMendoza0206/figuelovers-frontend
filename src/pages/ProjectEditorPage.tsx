@@ -4,7 +4,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { BackButton } from '../components/BackButton';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { GraphCanvas } from '../components/GraphCanvas';
+import { JohnsonFloatingPanel } from '../components/JohnsonFloatingPanel';
 import { Sidebar } from '../components/Sidebar';
+import { useClearSelectionOnUnmount } from '../hooks/useClearSelectionOnUnmount';
 import { error as toastError, success as toastSuccess } from '../hooks/useToast';
 import { useGraphStore } from '../store/useGraphStore';
 import { isConstellationProject } from '../types/project';
@@ -24,6 +26,7 @@ import { Button } from '../ui';
  * "Restaurar original", que vuelve a la plantilla.
  */
 const ProjectEditorPage: React.FC = () => {
+  useClearSelectionOnUnmount();
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const {
@@ -174,6 +177,7 @@ const ProjectEditorPage: React.FC = () => {
 
         <div className="relative min-h-0 flex-1">
           <GraphCanvas />
+          <JohnsonFloatingPanel />
         </div>
 
         <div className="absolute bottom-5 right-24 z-20">

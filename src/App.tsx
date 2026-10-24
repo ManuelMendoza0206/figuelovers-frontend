@@ -30,6 +30,7 @@ const KruskalPage = lazy(() => import('./pages/KruskalPage'));
 const AssignmentPage = lazy(() => import('./pages/AssignmentPage'));
 const NorthwestPage = lazy(() => import('./pages/NorthwestPage'));
 const TreesPage = lazy(() => import('./pages/TreesPage'));
+const SortPage = lazy(() => import('./pages/SortPage'));
 
 const PageFallback = () => (
   <div className="flex min-h-0 flex-1 items-center justify-center p-10 text-ink-muted">
@@ -114,6 +115,7 @@ const App: React.FC = () => {
                 <Route path="assignment" element={<AssignmentPage />} />
                 <Route path="northwest" element={<NorthwestPage />} />
                 <Route path="trees" element={<TreesPage />} />
+                <Route path="sort" element={<SortPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -6,6 +6,7 @@ import type {
 } from './graphToMatrix';
 import {
   MAX_GRAPH_NODES,
+  serializeAssignmentMatrix,
   translateGraphToCostMatrix,
 } from './graphToMatrix';
 
@@ -79,19 +80,18 @@ describe('translateGraphToCostMatrix - construccion de la matriz', () => {
     expect(t.colLabels).toEqual(['Alpha', 'B', 'C']);
   });
 
-  it('las celdas SIN conexion quedan en 0 y son editables', () => {
+  it('las celdas SIN conexion quedan prohibidas y no confunden un costo 0 real', () => {
     const t = ok([node('A'), node('B')], [edge('A', 'B', 5, true)]);
 
-    // [0][1] tiene arista; todo lo demas arranca en 0.
+    // [0][1] tiene arista; todo lo demas queda prohibido.
     expect(t.matrix[0][1]).toBe(5);
-    expect(t.matrix[0][0]).toBe(0);
-    expect(t.matrix[1][0]).toBe(0);
-    expect(t.matrix[1][1]).toBe(0);
+    expect(t.matrix[0][0]).toBeNull();
+    expect(t.matrix[1][0]).toBeNull();
+    expect(t.matrix[1][1]).toBeNull();
   });
 
   it('no deja ningun valor magico en la matriz', () => {
-    // Este es el requisito explicito: nada de sentinelsDerivados. Todos
-    // los valores tienen que ser 0 o el peso de una arista real.
+    // Una matriz traducida solo contiene costos reales o null.
     const t = ok(
       ['A', 'B', 'C'].map((id) => node(id)),
       [edge('A', 'B', 4), edge('B', 'C', 7), edge('C', 'A', 1)],
@@ -101,7 +101,7 @@ describe('translateGraphToCostMatrix - construccion de la matriz', () => {
     const pesosReales = new Set([4, 7, 1]);
     for (const row of t.matrix) {
       for (const value of row) {
-        expect(value === 0 || pesosReales.has(value)).toBe(true);
+        expect(value === null || pesosReales.has(value)).toBe(true);
       }
     }
   });
@@ -123,6 +123,25 @@ describe('translateGraphToCostMatrix - construccion de la matriz', () => {
     expect(t.emptyCells).toHaveLength(3);
   });
 
+  it('mantiene la direccion del grafo de ejemplo a, b, c y d', () => {
+    const t = ok(
+      ['a', 'b', 'c', 'd'].map((id) => node(id)),
+      [
+        edge('b', 'a', 1),
+        edge('b', 'd', 2),
+        edge('c', 'a', 3),
+        edge('d', 'c', 4),
+      ]
+    );
+
+    expect(t.matrix).toEqual([
+      [null, null, null, null],
+      [1, null, null, 2],
+      [3, null, null, null],
+      [null, null, 4, null],
+    ]);
+  });
+
   it('una arista NO dirigida puebla ambos sentidos', () => {
     const t = ok([node('A'), node('B')], [edge('A', 'B', 5, false)]);
 
@@ -131,9 +150,9 @@ describe('translateGraphToCostMatrix - construccion de la matriz', () => {
     expect(t.emptyCells).toEqual([[0, 0], [1, 1]]);
   });
 
-  it('la diagonal queda en 0 salvo self-loop explicito', () => {
+  it('la diagonal queda prohibida salvo self-loop explicito', () => {
     const sinLoop = ok([node('A'), node('B')], [edge('A', 'B', 5, true)]);
-    expect(sinLoop.matrix[0][0]).toBe(0);
+    expect(sinLoop.matrix[0][0]).toBeNull();
 
     const conLoop = ok([node('A'), node('B')], [edge('A', 'A', 9, true)]);
     expect(conLoop.matrix[0][0]).toBe(9);
@@ -195,57 +214,25 @@ describe('translateGraphToCostMatrix - construccion de la matriz', () => {
       edge('A', 'D', 4),
     ]);
 
-    const conPeso = t.matrix.flat().filter((v) => v !== 0).length;
+    const conPeso = t.matrix.flat().filter((v) => v !== null).length;
     expect(conPeso + t.emptyCells.length).toBe(nodes.length ** 2);
   });
 });
 
-describe('translateGraphToCostMatrix - el coste de dejar celdas en 0', () => {
+describe('serializeAssignmentMatrix - celdas prohibidas para el endpoint numerico', () => {
   /**
-   * Documenta, a proposito, por que el banner de la UI advierte.
-   *
-   * Con las celdas sin conexion en 0 (que es lo que pidio el usuario, y
-   * esta bien porque quedan editables), el hungaro MINIMIZA y por lo
-   * tanto va a preferir esas celdas. No es un bug: es la consecuencia
-   * matematica de que 0 sea el valor mas barato.
-   *
-   * Si el usuario quiere que esas parejas queden prohibidas, tiene que
-   * poner un valor alto a mano.
+   * El endpoint conserva su contrato number[][]; la UI no expone esta
+   * penalizacion, solo la usa para serializar null sin crear una arista.
    */
-  it('con celdas vacias en 0 el optimo cae en las celdas sin conexion', () => {
+  it('serializa null como penalizacion sin alterar costos reales, incluido 0', () => {
     const t = ok(
       ['A', 'B', 'C'].map((id) => node(id)),
-      [edge('A', 'B', 9), edge('B', 'C', 9)],
+      [edge('A', 'B', 0), edge('B', 'C', 9)],
       'minimize'
     );
-
-    // Todas las celdas valen 0 salvo dos. El optimo de minimizing es 0
-    // y se apoya en las celdas vacias.
-    const totalMinimo = t.matrix.flat().reduce((a, b) => a + b, 0);
-
-    expect(totalMinimo).toBe(18);
-    // Hay celdas en 0 disponibles, que es justamente el problema.
-    expect(t.emptyCells.length).toBeGreaterThan(0);
-  });
-
-  it('si el usuario sube las celdas vacias, el optimo se apoya en las reales', () => {
-    const t = ok(
-      ['A', 'B', 'C'].map((id) => node(id)),
-      [edge('A', 'B', 9), edge('B', 'C', 9)],
-      'minimize'
-    );
-
-    // Simulamos que el usuario prohibio las celdas sin conexion.
-    const editable = t.matrix.map((row) => [...row]);
-    for (const [r, c] of t.emptyCells) {
-      editable[r][c] = 1000;
-    }
-
-    const pendienteDeAristas = editable
-      .flatMap((row, r) => row.map((v, c) => ({ v, r, c })))
-      .filter(({ v }) => v !== 1000)
-      .map(({ v }) => v);
-
-    expect(Math.min(...pendienteDeAristas)).toBe(9);
+    const serialized = serializeAssignmentMatrix(t.matrix, false);
+    expect(serialized[0][1]).toBe(0);
+    expect(serialized[1][2]).toBe(9);
+    expect(serialized[0][0]).toBeGreaterThan(9);
   });
 });

@@ -221,6 +221,16 @@ select {
     --enter-x: 0.5rem;
     --enter-y: 0rem;
   }
+
+  /* El panel de ayuda entra desde el borde derecho; el fondo aparece
+     con un fade corto para que el foco quede en el contenido. */
+  .help-backdrop-enter {
+    animation: help-fade-in 180ms ease-out both;
+  }
+
+  .help-drawer-enter {
+    animation: help-drawer-in 260ms var(--ease-confident) both;
+  }
 }
 
 @keyframes enter-rise {
@@ -235,6 +245,40 @@ select {
     opacity: 1;
     transform: none;
   }
+}
+
+@keyframes help-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes help-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Sidebar de trabajo (árboles): al entrar desde otra pantalla el panel
+   crece de 320px a 460px en vez de aparecer de golpe. Es el único
+   momento animado de esa página y corre una sola vez por entrada; el
+   ancho final lo fija la clase md:w-[460px] del propio panel. En mobile
+   no aplica (el sidebar se apila a ancho completo) y con movimiento
+   reducido tampoco: el ancho se resuelve seco. */
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .sidebar-expand {
+    animation: sidebar-expand 380ms var(--ease-confident) both;
+  }
+}
+
+@keyframes sidebar-expand {
+  from { width: 20rem; }
+  to { width: 28.75rem; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -411,6 +455,15 @@ select {
     0 0 30px 6px rgb(114 230 224 / 0.26);
 }
 
+/* Anillo del camino de Johnson: oro, no teal. La seleccion edita, el
+   camino informa; no pueden compartir color. */
+.star-path {
+  border: 1px solid rgb(255 214 132 / 0.8);
+  box-shadow:
+    0 0 0 1px rgb(255 214 132 / 0.22),
+    0 0 30px 6px rgb(255 214 132 / 0.3);
+}
+
 /* Pastilla opaca en vez de text-shadow: la etiqueta vive DEBAJO de la
    estrella y a veces cae sobre el halo de otra. Un velo plano la
    mantiene legible sininventar otro objeto. */
@@ -471,6 +524,304 @@ select {
   90% { opacity: 1; }
   100% { offset-distance: 100%; opacity: 0; }
 }
+
+/* ---------------------------------------------------------------------------
+   EL ÁRBOL (página de árboles)
+
+   La escena del árbol vive en su propio panel: un fondo más profundo que
+   el resto de los paneles, con dos velos de nebulosa suaves y el mismo
+   campo de estrellas del vacío, muy bajado, para que los nodos se lean
+   sin competir con el sidebar. El anillo de la visita actual respira:
+   mientras recorrés con el slider, el ojo encuentra el nodo activo
+   aunque el árbol sea grande.
+   --------------------------------------------------------------------------- */
+
+.tree-stage {
+  background:
+    radial-gradient(90% 65% at 50% 0%, rgb(64 92 200 / 0.16), transparent 62%),
+    radial-gradient(70% 60% at 84% 94%, rgb(20 132 138 / 0.12), transparent 66%),
+    linear-gradient(180deg, #050a17 0%, #081020 100%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tree-visit-ring {
+    animation: tree-visit 1700ms ease-in-out infinite;
+  }
+}
+
+@keyframes tree-visit {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.95; }
+}
+
+/* ---------------------------------------------------------------------------
+   SORT (página de ordenamiento)
+
+   El arreglo es una constelación de columnas de luz. Cada barra es la
+   MISMA pieza viajando de ranura en ranura: el movimiento va por
+   `translateX` sobre ranuras de igual ancho (nunca por `left`), y la
+   altura queda fija por valor. El color es el estado, no decoración:
+   ámbar compara, violeta mueve, celeste señala el mínimo o la clave,
+   turquesa confirma que el número ya no se toca.
+
+   El tiempo de la transición llega por `--sort-duration` desde la
+   página: la velocidad del player y la duración del viaje son la misma
+   variable, así cada paso se asienta justo antes del siguiente.
+   --------------------------------------------------------------------------- */
+
+.sort-stage {
+  background:
+    radial-gradient(80% 62% at 50% 100%, rgb(72 110 200 / 0.18), transparent 68%),
+    radial-gradient(60% 50% at 86% 6%, rgb(142 203 255 / 0.1), transparent 70%),
+    linear-gradient(180deg, #040813 0%, #071020 100%);
+}
+
+.sort-plot {
+  position: absolute;
+  inset: 0;
+}
+
+/* Retícula de medición: cuatro líneas horizontales apenas visibles, el
+   equivalente a las marcas de un osciloscopio. No compite con las barras. */
+.sort-plot::before {
+  content: '';
+  position: absolute;
+  top: 3.75rem;
+  bottom: 3rem;
+  left: 1rem;
+  right: 1rem;
+  background-image: repeating-linear-gradient(
+    to top,
+    rgb(255 255 255 / 0.045) 0 1px,
+    transparent 1px 25%
+  );
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .sort-plot::before {
+    left: 1.5rem;
+    right: 1.5rem;
+  }
+}
+
+.sort-bars {
+  position: absolute;
+  top: 3.75rem;
+  bottom: 3rem;
+  left: 1rem;
+  right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .sort-bars {
+    left: 1.5rem;
+    right: 1.5rem;
+  }
+}
+
+/* Ranura: ancho fijo (100 / n). El hijo se traduce ENTERO, así que
+   `translateX(100%)` equivale exactamente a una ranura. */
+.sort-slot {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transition: transform var(--sort-duration, 220ms) var(--ease-confident);
+}
+
+.sort-bar {
+  position: relative;
+  width: 72%;
+  max-width: 74px;
+  min-height: 6px;
+  height: var(--bar-height, 20%);
+  margin-inline: auto;
+  border-radius: 7px 7px 3px 3px;
+  /* El color de estado transiciona; el material (luz arriba, sombra
+     abajo) queda fijo para que las barras se lean como el mismo objeto. */
+  background-color: #3b5d95;
+  background-image: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.34) 0%,
+    transparent 38%,
+    rgb(3 8 20 / 0.28) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    inset 0 0 0 1px rgb(255 255 255 / 0.06),
+    0 12px 26px rgb(0 0 0 / 0.32);
+  transform-origin: bottom center;
+  transition:
+    transform var(--sort-duration, 220ms) var(--ease-confident),
+    background-color var(--sort-duration, 220ms) linear,
+    box-shadow var(--sort-duration, 220ms) linear;
+  animation: sort-bar-in 620ms var(--ease-confident) backwards;
+  animation-delay: calc(var(--bar-index, 0) * 14ms);
+}
+
+/* `backwards` (y no `both`) a propósito: al terminar, la animación de
+   entrada suelta la propiedad `transform` y la barra puede levantarse
+   en inserción sin quedar congelada en scaleY(1). */
+@keyframes sort-bar-in {
+  from { opacity: 0; transform: scaleY(0); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+.sort-bar[data-state='comparing'] {
+  background-color: #e0ae49;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    0 0 26px 2px rgb(255 214 132 / 0.35),
+    0 12px 26px rgb(0 0 0 / 0.3);
+}
+
+.sort-bar[data-state='moving'] {
+  background-color: #9c7cf0;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    0 0 30px 3px rgb(196 181 253 / 0.38),
+    0 12px 26px rgb(0 0 0 / 0.3);
+  z-index: 2;
+}
+
+.sort-bar[data-state='candidate'] {
+  background-color: #5a97d6;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    0 0 26px 2px rgb(142 203 255 / 0.32),
+    0 12px 26px rgb(0 0 0 / 0.3);
+}
+
+.sort-bar[data-state='lifted'] {
+  background-color: #6fb0e8;
+  transform: translateY(-16px) scale(1.015);
+  z-index: 3;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.65),
+    0 0 34px 5px rgb(142 203 255 / 0.42),
+    0 18px 30px rgb(0 0 0 / 0.36);
+}
+
+.sort-bar[data-state='sorted'] {
+  background-color: #2fb3b3;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    0 0 20px 1px rgb(95 227 218 / 0.22),
+    0 12px 26px rgb(0 0 0 / 0.3);
+}
+
+.sort-bar-value {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 0.4rem;
+  transform: translateX(-50%);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--color-ink);
+  text-shadow: 0 1px 8px rgb(3 6 15 / 0.9);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Regla inferior + marcas por ranura: sin esto, el ojo no puede estimar
+   cuánto se movió una barra en un intercambio largo. */
+.sort-baseline {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 3rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(142 203 255 / 0.5), transparent);
+  box-shadow: 0 0 18px rgb(142 203 255 / 0.22);
+  pointer-events: none;
+}
+
+.sort-ticks {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 2.55rem;
+  height: 0.45rem;
+  background-image: linear-gradient(to right, rgb(142 203 255 / 0.3) 1px, transparent 1px);
+  background-repeat: repeat-x;
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .sort-baseline {
+    left: 1.5rem;
+    right: 1.5rem;
+  }
+
+  .sort-ticks {
+    left: 1.5rem;
+    right: 1.5rem;
+  }
+}
+
+.sort-stage.is-complete .sort-baseline {
+  background: linear-gradient(90deg, transparent, rgb(95 227 218 / 0.75), transparent);
+  box-shadow: 0 0 26px rgb(95 227 218 / 0.35);
+}
+
+/* Onda de cierre: al llegar al último paso, las barras se encienden de
+   izquierda a derecha. Es el único momento "extra" de la escena y dura
+   menos de un segundo. */
+@media (prefers-reduced-motion: no-preference) {
+  .sort-bar--complete {
+    animation: sort-bar-complete 720ms var(--ease-confident) both;
+    animation-delay: calc(var(--bar-index, 0) * 16ms);
+  }
+}
+
+@keyframes sort-bar-complete {
+  0% { filter: brightness(1); }
+  38% { filter: brightness(1.55); }
+  100% { filter: brightness(1); }
+}
+
+.sort-complete-glow {
+  position: absolute;
+  inset: auto 0 0;
+  height: 42%;
+  background: radial-gradient(60% 100% at 50% 100%, rgb(95 227 218 / 0.16), transparent 72%);
+  animation: sort-complete-glow 900ms var(--ease-confident) both;
+}
+
+@keyframes sort-complete-glow {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sort-key {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgb(255 255 255 / 0.12);
+}
+
+/* Deslizador del player y de la velocidad: el mismo control nativo, con
+   el acento y el foco del sistema. */
+.sort-range {
+  accent-color: #72e6e0;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.sort-range:focus-visible {
+  outline: 2px solid rgb(114 230 224 / 0.5);
+  outline-offset: 3px;
+  border-radius: 9999px;
+}
+
 
 /* ---------------------------------------------------------------------------
    SUPERFICIES DE REACT FLOW
@@ -548,6 +899,8 @@ select {
   .rise-in,
   .drift,
   .animate-in,
+  .help-backdrop-enter,
+  .help-drawer-enter,
   .animate-ping,
   .space-field,
   .field-stars,
@@ -555,11 +908,29 @@ select {
   .field-nebula-b,
   .star-core,
   .star-ring,
-  .beam-pulse {
+  .tree-visit-ring,
+  .beam-pulse,
+  .sort-bar,
+  .sort-complete-glow {
     animation: none;
   }
 
   .beam-pulse {
     display: none;
+  }
+
+  /* Sin viaje espacial, pero el estado sigue siendo legible por color. */
+  .sort-slot {
+    transition: none;
+  }
+
+  .sort-bar {
+    transition:
+      background-color 120ms linear,
+      box-shadow 120ms linear;
+  }
+
+  .sort-bar[data-state='lifted'] {
+    transform: none;
   }
 }

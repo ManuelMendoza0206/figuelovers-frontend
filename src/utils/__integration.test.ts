@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { translateGraphToCostMatrix } from './graphToMatrix';
+import {
+  serializeAssignmentMatrix,
+  translateGraphToCostMatrix,
+} from './graphToMatrix';
 
 /**
  * Integracion contra el backend real. Es opt-in porque necesita un
@@ -59,7 +62,7 @@ suite('integracion contra el backend real', () => {
     if (!r.ok) throw new Error(r.blocked.reason);
 
     const { status, json } = await post({
-      cost_matrix: r.translation.matrix,
+      cost_matrix: serializeAssignmentMatrix(r.translation.matrix, false),
       row_labels: r.translation.rowLabels,
       col_labels: r.translation.colLabels,
       maximize: false,
@@ -70,7 +73,9 @@ suite('integracion contra el backend real', () => {
     const res = json as RespuestaAssignment;
     expect(res.steps.length).toBeGreaterThan(0);
     expect(res.assignments.length).toBe(4);
-    expect(res.initial_cost_matrix).toEqual(r.translation.matrix);
+    expect(res.initial_cost_matrix).toEqual(
+      serializeAssignmentMatrix(r.translation.matrix, false)
+    );
 
     // La asignacion optima debe caer sobre celdas que el usuario marco.
     const selected = res.steps
@@ -96,22 +101,24 @@ suite('integracion contra el backend real', () => {
 
     const matriz = r.translation.matrix;
 
-    // Paso 1: como quedo de la traduccion, con las celdas vacias en 0.
+    // Paso 1: las celdas vacias se serializan como prohibidas.
     const antes = (await post({
-      cost_matrix: matriz,
+      cost_matrix: serializeAssignmentMatrix(matriz, false),
       row_labels: r.translation.rowLabels,
       col_labels: r.translation.colLabels,
       maximize: false,
     })).json as RespuestaAssignment;
 
     // Paso 2: el usuario edita y prohibe las celdas sin conexion.
-    const editada = matriz.map((fila) => [...fila]);
+    const editada = matriz.map((fila) =>
+      fila.map((value) => (value === null ? 1000 : value))
+    );
     for (const [rowIndex, colIndex] of r.translation.emptyCells) {
       editada[rowIndex][colIndex] = 1000;
     }
 
     const despues = (await post({
-      cost_matrix: editada,
+      cost_matrix: serializeAssignmentMatrix(editada, false),
       row_labels: r.translation.rowLabels,
       col_labels: r.translation.colLabels,
       maximize: false,

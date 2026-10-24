@@ -1,337 +1,254 @@
-import { ArrowRightLeft, ChevronDown, Crosshair, GitBranch, HelpCircle, Keyboard, MousePointerClick, Navigation2, Network, Orbit, Plus, Route, Sparkles, Trash2, Truck } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
-import { IconButton } from '../ui';
+import { HelpCircle, Lightbulb, X } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+
 import { EDITOR_EVENTS } from '../lib/editorEvents';
 import { useEditorEvent } from '../hooks/useEditorEvent';
+import type { HelpControl, HelpSection, HelpStep } from '../help/helpSections';
+import { getHelpSection } from '../help/helpSections';
+import { IconButton } from '../ui';
 
-interface HelpItem {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  detail?: string;
-  accent?: 'brand' | 'error';
+interface HelpModalProps {
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
 }
 
-/**
- * Atajos del lienzo. La fuente de verdad del mapeo es GraphToolbar
- * (tecla junto a cada boton); esto es solo la vista impresa.
- */
-const SHORTCUTS: { key: string; label: string }[] = [
-  { key: 'Q', label: 'Interactuar' },
-  { key: 'W', label: 'Conectar' },
-  { key: 'E', label: 'Añadir nodo' },
-  { key: 'P', label: 'Eliminar' },
-  { key: 'H', label: 'Abrir esta ayuda' },
-  { key: 'O', label: 'Limpiar todo' },
-  { key: 'Esc', label: 'Volver a Interactuar' },
-];
+const StepList: React.FC<{ steps: HelpStep[] }> = ({ steps }) => (
+  <ol className="space-y-3.5">
+    {steps.map((step, index) => (
+      <li key={step.title} className="flex gap-3">
+        <span
+          aria-hidden="true"
+          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-brand/30 bg-brand/10 font-mono text-[10px] font-bold text-brand"
+        >
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-bold leading-5 text-ink">{step.title}</p>
+          <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{step.detail}</p>
+        </div>
+      </li>
+    ))}
+  </ol>
+);
 
-const HELP_ITEMS: HelpItem[] = [
-  {
-    icon: <MousePointerClick className="h-4 w-4" />,
-    title: 'Interactuar',
-    description: 'Selecciona nodos y aristas, arrástralos para moverlos y navega arrastrando el lienzo.',
-  },
-  {
-    icon: <GitBranch className="h-4 w-4" />,
-    title: 'Conectar',
-    description: 'Activa Conectar y arrastra desde un nodo hasta otro. La dirección será automáticamente del origen al destino.',
-  },
-  {
-    icon: <Plus className="h-4 w-4" />,
-    title: 'Crear nodos',
-    description: 'Activa Añadir nodo: el cursor se convierte en un + y la estrella nace exactamente donde hagas clic. En modo Interactuar, el doble clic sobre el lienzo vacío también crea una estrella.',
-  },
-  {
-    icon: <ArrowRightLeft className="h-4 w-4" />,
-    title: 'Editar aristas',
-    description: 'Selecciona una arista para cambiar su peso, quitar su dirección o invertirla.',
-  },
-  {
-    icon: <Trash2 className="h-4 w-4" />,
-    title: 'Eliminar',
-    description: 'Activa Eliminar: el cursor se convierte en una × y, al hacer clic en una estrella o en una conexión, aparece la confirmación de ese elemento. Un único botón sirve para los dos.',
-    accent: 'error',
-  },
-];
+const ControlList: React.FC<{ controls: HelpControl[] }> = ({ controls }) => (
+  <ul className="space-y-2.5">
+    {controls.map((control) => (
+      <li key={control.label} className="flex items-start gap-3">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-brand">
+          {control.icon}
+        </span>
+        <div className="min-w-0">
+          <p className="inline-flex rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-ink">
+            {control.label}
+          </p>
+          <p className="mt-1 text-[13px] leading-5 text-ink-muted">{control.description}</p>
+        </div>
+      </li>
+    ))}
+  </ul>
+);
 
-const ALGORITHM_ITEMS: HelpItem[] = [
-  {
-    icon: <Route className="h-4 w-4" />,
-    title: 'Rutas interestelares (Johnson)',
-    description: 'Calcula distancias y caminos mínimos entre todos los pares de nodos.',
-    detail: 'Todas las aristas deben ser dirigidas. El servicio añade una fuente artificial y ejecuta Bellman–Ford para detectar ciclos negativos y obtener potenciales. Después repondera las aristas y ejecuta Dijkstra desde cada nodo para reconstruir distancias y caminos. ∞ significa que no existe un camino; un aviso de ciclo negativo indica que no se pueden definir distancias mínimas. Consulta la matriz de distancias y elige origen y destino para ver el camino correspondiente.',
-  },
-  {
-    icon: <Navigation2 className="h-4 w-4" />,
-    title: 'Camino mínimo (Dijkstra)',
-    description: 'Distancia mínima desde un origen a todos los demás nodos, con traza paso a paso.',
-    detail: 'Elige un nodo origen (obligatorio) y, opcionalmente, un destino: el algoritmo calcula SIEMPRE las distancias a todos los nodos; el destino solo resalta un camino concreto y su total. Cada arista se respeta según su dirección: una dirigida se recorre únicamente de origen a destino y una no dirigida en ambos sentidos (a diferencia de Johnson, no hace falta que todas sean dirigidas). Los pesos deben ser 0 o mayores: si hay pesos negativos se avisa con las aristas afectadas y se sugiere Johnson. Un peso vacío cuenta como 1. Las aristas paralelas se consideran todas (gana la menor) y los bucles se ignoran. ∞ (en la tabla) significa nodo inalcanzable, con camino vacío. Cada paso fija un nodo: se muestra su distancia y las relajaciones intentadas desde él, con el valor viejo → nuevo y si mejoró o no; solo mejora una distancia estrictamente menor y, a igual distancia, gana el nodo que aparece antes en el grafo, así el resultado es siempre el mismo. Dijkstra trabaja desde un origen único; Johnson resuelve todos los pares a la vez y exige grafo dirigido. El límite es 100 nodos.',
-  },
-  {
-    icon: <Network className="h-4 w-4" />,
-    title: 'Árbol de expansión (Kruskal)',
-    description: 'Une todos los nodos con el menor peso total posible, ignorando la dirección.',
-    detail: 'Un árbol de expansión conecta todos los nodos sin ciclos y con el menor peso total; Kruskal ordena las aristas por peso y acepta cada una si une dos grupos de nodos distintos, o la rechaza si formaría un ciclo o si es un bucle. Puedes buscar el de peso MÍNIMO o MÁXIMO (mismo algoritmo, orden inverso). La dirección de las aristas se ignora: si hay dirigidas se avisa. Se admiten pesos negativos y cero, y un peso vacío cuenta como 1. Si el grafo es desconexo no es un error: se devuelve un bosque de expansión (un árbol por componente), con aviso y número de componentes. Con empates puede existir más de un árbol de igual costo: el desempate sigue el orden original de las aristas en el grafo, de modo que siempre se muestra el mismo. El paso a paso muestra cada arista evaluada, su decisión (aceptada o rechazada) con el motivo, los componentes vigentes con un color cada uno y el peso acumulado; se procesan todas las aristas, también después de completar el árbol, para que se vea el motivo de cada rechazo. Límites: 100 nodos y 500 aristas.',
-  },
-  {
-    icon: <Crosshair className="h-4 w-4" />,
-    title: 'Comando de misión (Asignación húngara)',
-    description: 'Busca una asignación de costo mínimo o beneficio máximo entre filas y columnas.',
-    detail: 'Al traducir un grafo, las aristas dirigidas completan [origen][destino] y las no dirigidas completan ambos sentidos. Las celdas sin conexión empiezan en 0 y deben revisarse: no significan rutas prohibidas. Para maximizar, cada valor se transforma como máximo − valor. Las matrices rectangulares se cuadran con filas o columnas ficticias y el límite es 20 × 20. Los pasos muestran las reducciones y el ajuste de ceros; son una traza didáctica, mientras que la asignación final se obtiene con el solver de asignación lineal.',
-  },
-  {
-    icon: <Truck className="h-4 w-4" />,
-    title: 'Esquina Noroeste (transporte)',
-    description: 'Construye una solución inicial de transporte comenzando por la celda superior izquierda.',
-    detail: 'Asigna roles de origen/destino y completa sus ofertas/demandas; los roles se pueden inferir de las aristas o cambiar manualmente. El método asigna el mínimo entre oferta y demanda restantes y avanza al cerrar una fila o columna. El campo was_balanced indica si los totales originales coincidían antes de cualquier ajuste; si no coinciden, se agrega un origen o destino ficticio de costo cero, identificado en dummy. Si se agotan ambos a la vez, se marca una celda básica degenerada con asignación cero. Una celda sin arista es una ruta bloqueada (se muestra —), no costo cero: si recibe cantidad, el resultado se marca NO FACTIBLE. Esta solución inicial no necesariamente minimiza el costo.',
-  },
-  {
-    icon: <GitBranch className="h-4 w-4" />,
-    title: 'Árboles binarios de búsqueda',
-    description: 'Inserta valores individuales o genera valores aleatorios para construir y recorrer un ABB.',
-    detail: 'En un ABB, los valores menores se insertan a la izquierda y los mayores a la derecha. Pre-order visita raíz–izquierda–derecha; in-order, izquierda–raíz–derecha; post-order, izquierda–derecha–raíz (para la raíz 2 con hijos 1 y 3: 2,1,3; 1,2,3; 1,3,2). También puedes reconstruir con in-order + pre-order o in-order + post-order. Pre-order + post-order no se admite porque no determina un árbol único. Las cadenas deben ser no vacías, tener valores únicos y contener el mismo conjunto; el sistema informa los faltantes/sobrantes o si los órdenes son incompatibles. Un árbol reconstruido puede ser binario general, no necesariamente ABB. Se guarda en el grafo como aristas dirigidas padre→hijo y metadatos treeValue/treeSide en node.data, así se conserva al guardar/exportar el proyecto.',
-  },
-];
-
-const UNIVERSE_ITEMS: HelpItem[] = [
-  { icon: <Orbit className="h-4 w-4" />, title: 'Universo observable', description: 'La marca y el punto de entrada a toda la experiencia.' },
-  { icon: <Orbit className="h-4 w-4" />, title: 'Red cósmica', description: 'El dashboard donde cada galaxia representa un proyecto guardado localmente.' },
-  { icon: <Orbit className="h-4 w-4" />, title: 'Galaxia y constelación', description: 'Una galaxia es un proyecto; su constelación es el grafo formado por estrellas y líneas. No confundir con «Constelaciones», la sección de figuras reales del cielo.' },
-  { icon: <Orbit className="h-4 w-4" />, title: 'Rutas y misiones', description: 'Las conexiones representan viajes y la asignación representa recursos enviados a destinos planetarios.' },
-];
-
-/**
- * Qué son y qué se puede hacer con una constelación. Va desplegable como
- * los algoritmos porque es el unico tema que rompe una regla del editor
- * (la forma no se toca) y esa regla necesita explicación, no asumirla.
- */
-const CONSTELLATION_DETAIL: React.ReactNode = (
+const HelpBody: React.FC<{ section: HelpSection }> = ({ section }) => (
   <>
-    <p>
-      Son plantillas de figuras reales del cielo (Orión, Osa Mayor, Casiopea…) que viven
-      en <code className="font-mono text-ink">public/constellations/</code> y se abren
-      desde la sección <strong>Constelaciones</strong>. Al abrirlas se COPIAN a un
-      proyecto propio: por eso el archivo original nunca se toca y puedes experimentar
-      sin miedo a romper la figura.
-    </p>
-    <p className="mt-2">
-      <strong className="text-ink">La forma es fija</strong>: no se pueden agregar,
-      mover ni eliminar estrellas, ni crear ni eliminar conexiones. Es lo que hace que
-      la figura siga siendo reconocible; el bloqueo vive en el estado del editor, no solo
-      en los botones.
-    </p>
-    <p className="mt-2">
-      <strong className="text-ink">Sí puedes</strong>: renombrar cada estrella, cambiar
-      el peso de cada conexión, marcar todas como dirigidas (o quitarles la dirección)
-      con los botones del editor, invertir una arista y definir los datos que usan los
-      algoritmos (roles, oferta y demanda).
-    </p>
-    <p className="mt-2">
-      <strong className="text-ink">Con los algoritmos</strong>: Johnson exige aristas
-      dirigidas, así que usa «Todas dirigidas» antes de entrar a Rutas interestelares.
-      Asignación, Esquina Noroeste y las matrices usan los pesos y los roles que definas.
-      Si te equivocaste, <strong className="text-ink">Restaurar original</strong> en el
-      editor devuelve la plantilla completa (forma, pesos y nombres).
-    </p>
-    <p className="mt-2">
-      Se exportan como un JSON normal: si lo importás en un lienzo libre, el grafo deja
-      de estar protegido y puedes editarlo como cualquier otro.
-    </p>
+    <p className="text-sm leading-6 text-ink-muted">{section.summary}</p>
+
+    <section className="mt-6" aria-labelledby="help-steps-title">
+      <p id="help-steps-title" className="eyebrow text-[9px]">
+        Paso a paso
+      </p>
+      <div className="mt-3">
+        <StepList steps={section.steps} />
+      </div>
+    </section>
+
+    <section className="mt-7" aria-labelledby="help-controls-title">
+      <p id="help-controls-title" className="eyebrow text-[9px]">
+        Botones y controles
+      </p>
+      <div className="mt-3">
+        <ControlList controls={section.controls} />
+      </div>
+    </section>
+
+    {section.shortcuts && section.shortcuts.length > 0 && (
+      <section className="mt-7" aria-labelledby="help-shortcuts-title">
+        <p id="help-shortcuts-title" className="eyebrow text-[9px]">
+          Atajos del lienzo
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {section.shortcuts.map((shortcut) => (
+            <span
+              key={shortcut.keys}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-ink-muted"
+            >
+              <kbd className="rounded border border-white/15 bg-[#050a17] px-1.5 py-0.5 font-mono text-[10px] font-bold text-ink">
+                {shortcut.keys}
+              </kbd>
+              {shortcut.label}
+            </span>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {section.notes && section.notes.length > 0 && (
+      <section className="mt-7" aria-labelledby="help-notes-title">
+        <p id="help-notes-title" className="eyebrow text-[9px]">
+          Tené en cuenta
+        </p>
+        <ul className="mt-3 space-y-2.5 rounded-xl border border-mission/20 bg-mission/[0.06] p-3.5">
+          {section.notes.map((note) => (
+            <li key={note} className="flex gap-2.5 text-[13px] leading-5 text-ink-muted">
+              <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-mission" aria-hidden="true" />
+              <span>{note}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
   </>
 );
 
-export const HelpModal: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [expandedAlgorithm, setExpandedAlgorithm] = useState<number | null>(null);
-  const [isConstellationOpen, setIsConstellationOpen] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+/**
+ * Ayuda contextual de la aplicación.
+ *
+ * El botón flotante y el botón «Ayuda» del navbar abren el mismo panel.
+ * El contenido depende de la ruta: cada sección explica sus propios
+ * botones y su flujo, en lugar de mostrar un catálogo genérico.
+ */
+export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onOpen, onClose }) => {
+  const location = useLocation();
+  const section = getHelpSection(location.pathname);
+  const isConstellations = location.pathname.replace(/\/+$/, '') === '/constellations';
 
-  // Atajo H del lienzo: alterna la ayuda sin importar donde este el mouse.
-  useEditorEvent(EDITOR_EVENTS.openHelp, () => setIsOpen((current) => !current));
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const fabRef = useRef<HTMLButtonElement | null>(null);
+  const wasOpen = useRef(false);
+
+  useEditorEvent(EDITOR_EVENTS.openHelp, () => {
+    if (isOpen) {
+      onClose();
+    } else {
+      onOpen();
+    }
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      wasOpen.current = true;
+      closeButtonRef.current?.focus();
+    } else if (wasOpen.current) {
+      wasOpen.current = false;
+      fabRef.current?.focus();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   return (
-    <div className="relative">
-      <IconButton
-        ref={buttonRef}
-        onClick={() => setIsOpen((c) => !c)}
-        aria-label="Ayuda"
-        aria-expanded={isOpen}
+    <>
+      <button
+        ref={fabRef}
+        type="button"
+        aria-label="Abrir ayuda"
         aria-haspopup="dialog"
-        title="Ayuda"
-        variant="ghost"
-        size="md"
-        className={isOpen ? 'bg-brand-muted text-brand' : ''}
+        aria-controls="contextual-help-dialog"
+        aria-expanded={isOpen}
+        tabIndex={isOpen ? -1 : 0}
+        aria-hidden={isOpen}
+        onClick={onOpen}
+        className={[
+          'fixed right-4 z-40 inline-flex items-center gap-2 rounded-full border border-brand/35',
+          'bg-surface/95 px-4 py-2.5 text-sm font-bold text-brand shadow-[0_18px_50px_rgba(3,8,20,0.55)]',
+          'backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/60',
+          'hover:bg-brand hover:text-[#07101f] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
+          'sm:right-5',
+          isConstellations ? 'bottom-20' : 'bottom-4 sm:bottom-5',
+          isOpen ? 'pointer-events-none opacity-0' : 'opacity-100',
+        ].join(' ')}
       >
-        <span className="relative flex h-5 w-5 items-center justify-center rounded-full border border-brand/50 bg-brand/10 text-brand">
-          <Orbit className="h-4 w-4" />
-          <HelpCircle className="absolute h-2.5 w-2.5 fill-[#101b37]" />
-        </span>
+        <HelpCircle className="h-4 w-4" aria-hidden="true" />
         <span className="hidden sm:inline">Ayuda</span>
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </IconButton>
+        <span className="hidden rounded-md border border-brand/20 bg-brand/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-brand/80 sm:inline">
+          {section.fabLabel}
+        </span>
+      </button>
 
       {isOpen && (
-        <div
-          ref={popoverRef}
-          role="dialog"
-          aria-label="Ayuda de Aristografos"
-          className="absolute right-0 top-[calc(100%+8px)] z-50 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl animate-in fade-in zoom-in-95"
-        >
-          <div className="border-b border-white/10 bg-[#0b1328] px-5 py-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand text-white">
-                <HelpCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-sm font-extrabold text-ink">Cómo usar Figuelovers</h2>
-                <p className="mt-0.5 text-[11px] text-ink-muted">Guía rápida del observatorio</p>
-              </div>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-50">
+          <button
+            type="button"
+            aria-label="Cerrar ayuda"
+            aria-hidden="true"
+            tabIndex={-1}
+            onClick={onClose}
+            className="help-backdrop-enter absolute inset-0 bg-[#03060f]/75 backdrop-blur-sm"
+          />
 
-          <div className="max-h-[65vh] overflow-y-auto p-4">
-            <p className="eyebrow mb-3 text-[9px]">01 · funcionamiento básico</p>
-            <div className="space-y-3">
-              {HELP_ITEMS.map((item, index) => (
-                <div
-                  key={index}
-                  className={[
-                    'flex gap-3 rounded-xl border p-3 transition',
-                    item.accent === 'error'
-                      ? 'border-[#ff9f80]/25 bg-[#ff9f80]/10'
-                      : 'border-white/10 bg-white/[0.04]',
-                  ].join(' ')}
+          <aside
+            id="contextual-help-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contextual-help-title"
+            className="help-drawer-enter absolute inset-y-0 right-0 flex w-full max-w-[440px] flex-col border-l border-border/80 bg-surface shadow-2xl"
+          >
+            <header className="flex items-start gap-3 border-b border-border/80 px-5 py-4">
+              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand/25 bg-brand/10 text-brand">
+                {section.icon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="eyebrow text-[9px]">{section.eyebrow}</p>
+                <h2
+                  id="contextual-help-title"
+                  className="mt-1 font-display text-lg font-extrabold leading-tight text-ink"
                 >
-                  <span
-                    className={[
-                      'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                      item.accent === 'error'
-                        ? 'bg-[#ff9f80]/15 text-[#ffb09a]'
-                        : 'bg-brand-muted text-brand',
-                    ].join(' ')}
-                  >
-                    {item.icon}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-extrabold text-ink">{item.title}</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-ink-muted">{item.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="eyebrow mb-3 mt-6 text-[9px]">02 · atajos de teclado</p>
-            <div className="space-y-1.5">
-              {SHORTCUTS.map((shortcut) => (
-                <div
-                  key={shortcut.key}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2"
-                >
-                  <span className="flex min-w-0 items-center gap-2 text-[11px] text-ink-muted">
-                    <Keyboard aria-hidden className="h-3.5 w-3.5 shrink-0 text-brand" />
-                    <span className="truncate">{shortcut.label}</span>
-                  </span>
-                  <kbd className="shrink-0 rounded border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] font-medium text-ink">
-                    {shortcut.key}
-                  </kbd>
-                </div>
-              ))}
-            </div>
-            <p className="eyebrow mb-3 mt-6 text-[9px]">03 · constelaciones</p>
-            <div className="overflow-hidden rounded-xl border border-mission/25 bg-mission/[0.07]">
-              <button
+                  {section.title}
+                </h2>
+              </div>
+              <IconButton
+                ref={closeButtonRef}
                 type="button"
-                aria-expanded={isConstellationOpen}
-                aria-controls="constellation-help-detail"
-                onClick={() => setIsConstellationOpen((current) => !current)}
-                className="flex w-full items-start gap-3 p-3 text-left"
+                aria-label="Cerrar panel de ayuda"
+                title="Cerrar ayuda (Esc)"
+                size="sm"
+                variant="secondary"
+                onClick={onClose}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-mission/15 text-mission">
-                  <Sparkles className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-xs font-extrabold text-ink">Constelaciones famosas</span>
-                  <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-muted">
-                    Plantillas de figuras reales del cielo, con la forma fija: renombrar
-                    estrellas y editar pesos sí; cambiar la figura no.
-                  </span>
-                </span>
-                <ChevronDown className={`mt-1 h-3.5 w-3.5 shrink-0 text-ink-muted transition-transform ${isConstellationOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {isConstellationOpen && (
-                <div
-                  id="constellation-help-detail"
-                  className="border-t border-mission/20 px-4 py-3 pl-14 text-[11px] leading-relaxed text-ink-muted"
-                >
-                  {CONSTELLATION_DETAIL}
-                </div>
-              )}
-            </div>
-            <p className="eyebrow mb-3 mt-6 text-[9px]">04 · algoritmos</p>
-            <div className="space-y-3">
-              {ALGORITHM_ITEMS.map((item, index) => {
-                const expanded = expandedAlgorithm === index;
-                const detailId = `algorithm-help-detail-${index}`;
-                return (
-                  <div key={`algorithm-${index}`} className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
-                    <button
-                      type="button"
-                      aria-expanded={expanded}
-                      aria-controls={detailId}
-                      onClick={() => setExpandedAlgorithm((current) => current === index ? null : index)}
-                      className="flex w-full items-start gap-3 p-3 text-left"
-                    >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-muted text-brand">{item.icon}</span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-extrabold text-ink">{item.title}</span>
-                        <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-muted">{item.description}</span>
-                      </span>
-                      <ChevronDown className={`mt-1 h-3.5 w-3.5 shrink-0 text-ink-muted transition-transform ${expanded ? 'rotate-180' : ''}`} />
-                    </button>
-                    {expanded && (
-                      <div id={detailId} className="border-t border-white/10 px-4 py-3 pl-14 text-[11px] leading-relaxed text-ink-muted">
-                        {item.detail}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <p className="eyebrow mb-3 mt-6 text-[9px]">05 · conceptos del universo</p>
-            <div className="space-y-3">
-              {UNIVERSE_ITEMS.map((item, index) => (
-                <div key={`universe-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#ffd684]/10 text-[#ffd684]">{item.icon}</span>
-                  <div className="min-w-0"><p className="text-xs font-extrabold text-ink">{item.title}</p><p className="mt-0.5 text-[11px] leading-relaxed text-ink-muted">{item.description}</p></div>
-                </div>
-              ))}
-            </div>
-          </div>
+                <X className="h-4 w-4" aria-hidden="true" />
+              </IconButton>
+            </header>
 
-          <div className="border-t border-white/10 bg-[#0b1328] px-4 py-3">
-            <p className="text-center text-[10px] font-medium text-ink-subtle">Figuelovers · Observatorio de grafos</p>
-          </div>
+            <div className="custom-scrollbar flex-1 overflow-y-auto px-5 py-5">
+              <HelpBody section={section} />
+            </div>
+
+            <footer className="border-t border-border/80 px-5 py-3">
+              <p className="text-[11px] leading-4 text-ink-subtle">
+                Esta guía cambia según la sección. El botón «Ayuda» del navbar abre el mismo panel.
+              </p>
+            </footer>
+          </aside>
         </div>
       )}
-    </div>
+    </>
   );
 };

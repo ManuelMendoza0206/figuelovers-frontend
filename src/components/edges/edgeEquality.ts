@@ -23,6 +23,12 @@ export interface WeightedEdgeData {
    * Decide si el haz queda encendido o atenuado, y si su pulso viaja.
    */
   isLit?: boolean;
+  /**
+   * Esta arista pertenece al camino resaltado de Johnson. Tiene
+   * prioridad visual sobre el encendido por seleccion: el camino es un
+   * resultado, la seleccion es una edicion.
+   */
+  isPath?: boolean;
 }
 
 const sameNumber = (a: number | undefined, b: number | undefined): boolean =>
@@ -81,6 +87,7 @@ export const areEdgePropsEqual = (
     (prevData?.isCurved ?? false) !== (nextData?.isCurved ?? false) ||
     (prevData?.isSelfLoop ?? false) !== (nextData?.isSelfLoop ?? false) ||
     (prevData?.isLit ?? true) !== (nextData?.isLit ?? true) ||
+    (prevData?.isPath ?? false) !== (nextData?.isPath ?? false) ||
     !sameNumber(prevData?.normalX, nextData?.normalX) ||
     !sameNumber(prevData?.normalY, nextData?.normalY) ||
     !sameNumber(prevData?.curveSign, nextData?.curveSign) ||
