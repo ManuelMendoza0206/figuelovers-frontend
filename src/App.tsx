@@ -25,6 +25,8 @@ const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'));
 const ConstellationsPage = lazy(() => import('./pages/ConstellationsPage'));
 
 const JohnsonPage = lazy(() => import('./pages/JohnsonPage'));
+const DijkstraPage = lazy(() => import('./pages/DijkstraPage'));
+const KruskalPage = lazy(() => import('./pages/KruskalPage'));
 const AssignmentPage = lazy(() => import('./pages/AssignmentPage'));
 const NorthwestPage = lazy(() => import('./pages/NorthwestPage'));
 const TreesPage = lazy(() => import('./pages/TreesPage'));
@@ -107,6 +109,8 @@ const App: React.FC = () => {
                 <Route path="galaxy/:projectId" element={<ProjectEditorPage />} />
                 <Route path="constellations" element={<ConstellationsPage />} />
                 <Route path="johnson" element={<JohnsonPage />} />
+                <Route path="dijkstra" element={<DijkstraPage />} />
+                <Route path="kruskal" element={<KruskalPage />} />
                 <Route path="assignment" element={<AssignmentPage />} />
                 <Route path="northwest" element={<NorthwestPage />} />
                 <Route path="trees" element={<TreesPage />} />

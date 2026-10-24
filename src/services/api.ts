@@ -6,13 +6,16 @@ import type {
   GraphImportData,
   SuccessResponse,
   GraphValidationData,
-  DijkstraData,
+  DijkstraPayload,
+  DijkstraResultData,
   BfsData,
   JohnsonResultData,
   AssignmentPayload,
   AssignmentResultData,
   NorthwestPayload,
   NorthwestResult,
+  KruskalPayload,
+  KruskalResultData,
   TreeBuildResult,
   TreeData,
   TreeOrder,
@@ -61,17 +64,40 @@ export const GraphServiceAPI = {
     return response.data;
   },
 
+  /**
+   * Camino mínimo con origen único (Dijkstra real en el backend).
+   *
+   * El contrato del stub viejo (source/target como query params +
+   * respuesta simulada) se reemplazó: todo va en el body y el backend
+   * devuelve distancias, predecesores, caminos y la traza paso a paso.
+   * `signal` permite abortar el request anterior al relanzar el cálculo
+   * (mismo patrón que Assignment/Northwest).
+   */
   runDijkstra: async (
-    source: string, 
-    target: string, 
-    payload: GraphPayloadSchema
-  ): Promise<SuccessResponse<DijkstraData>> => {
-    const response = await apiClient.post<SuccessResponse<DijkstraData>>(
+    payload: DijkstraPayload,
+    signal?: AbortSignal
+  ): Promise<DijkstraResultData> => {
+    const response = await apiClient.post<DijkstraResultData>(
       '/graph/algorithms/dijkstra',
       payload,
-      {
-        params: { source, target },
-      }
+      signal ? { signal } : undefined
+    );
+    return response.data;
+  },
+
+  /**
+   * Árbol de expansión mínima (o máxima) con Kruskal. El grafo se
+   * trata como no dirigido en el backend; `signal` cancela la petición
+   * anterior al relanzar el cálculo.
+   */
+  runKruskal: async (
+    payload: KruskalPayload,
+    signal?: AbortSignal
+  ): Promise<KruskalResultData> => {
+    const response = await apiClient.post<KruskalResultData>(
+      '/graph/algorithms/kruskal',
+      payload,
+      signal ? { signal } : undefined
     );
     return response.data;
   },

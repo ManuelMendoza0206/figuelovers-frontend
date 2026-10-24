@@ -1,4 +1,4 @@
-import { ChevronDown, Crosshair, Route, Settings, Sparkles, Truck, GitBranch } from 'lucide-react';
+import { ChevronDown, Crosshair, Navigation2, Network, Route, Settings, Sparkles, Truck, GitBranch } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEdgeDirectionLogic } from '../hooks/useEdgeDirectionLogic';
@@ -175,6 +175,14 @@ export const Sidebar: React.FC = () => {
               <button type="button" onClick={() => openAlgorithm('/johnson')} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${location.pathname === '/johnson' ? 'border-brand/40 bg-brand/10 text-brand' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-brand/25 hover:text-ink'}`}>
                 <Route className="h-4 w-4" />
                 <span><strong className="block text-xs">Rutas interestelares</strong><span className="font-mono text-[10px] opacity-70">(Johnson)</span></span>
+              </button>
+              <button type="button" onClick={() => openAlgorithm('/dijkstra')} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${location.pathname === '/dijkstra' ? 'border-sky-300/40 bg-sky-300/10 text-sky-200' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-sky-300/25 hover:text-ink'}`}>
+                <Navigation2 className="h-4 w-4" />
+                <span><strong className="block text-xs">Camino mínimo</strong><span className="font-mono text-[10px] opacity-70">(Dijkstra)</span></span>
+              </button>
+              <button type="button" onClick={() => openAlgorithm('/kruskal')} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${location.pathname === '/kruskal' ? 'border-lime-300/40 bg-lime-300/10 text-lime-200' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-lime-300/25 hover:text-ink'}`}>
+                <Network className="h-4 w-4" />
+                <span><strong className="block text-xs">Árbol de expansión</strong><span className="font-mono text-[10px] opacity-70">(Kruskal)</span></span>
               </button>
               <button
                 type="button"

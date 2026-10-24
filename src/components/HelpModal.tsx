@@ -1,4 +1,4 @@
-import { ArrowRightLeft, ChevronDown, Crosshair, GitBranch, HelpCircle, Keyboard, MousePointerClick, Orbit, Plus, Route, Sparkles, Trash2, Truck } from 'lucide-react';
+import { ArrowRightLeft, ChevronDown, Crosshair, GitBranch, HelpCircle, Keyboard, MousePointerClick, Navigation2, Network, Orbit, Plus, Route, Sparkles, Trash2, Truck } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { IconButton } from '../ui';
 import { EDITOR_EVENTS } from '../lib/editorEvents';
@@ -61,6 +61,18 @@ const ALGORITHM_ITEMS: HelpItem[] = [
     title: 'Rutas interestelares (Johnson)',
     description: 'Calcula distancias y caminos mínimos entre todos los pares de nodos.',
     detail: 'Todas las aristas deben ser dirigidas. El servicio añade una fuente artificial y ejecuta Bellman–Ford para detectar ciclos negativos y obtener potenciales. Después repondera las aristas y ejecuta Dijkstra desde cada nodo para reconstruir distancias y caminos. ∞ significa que no existe un camino; un aviso de ciclo negativo indica que no se pueden definir distancias mínimas. Consulta la matriz de distancias y elige origen y destino para ver el camino correspondiente.',
+  },
+  {
+    icon: <Navigation2 className="h-4 w-4" />,
+    title: 'Camino mínimo (Dijkstra)',
+    description: 'Distancia mínima desde un origen a todos los demás nodos, con traza paso a paso.',
+    detail: 'Elige un nodo origen (obligatorio) y, opcionalmente, un destino: el algoritmo calcula SIEMPRE las distancias a todos los nodos; el destino solo resalta un camino concreto y su total. Cada arista se respeta según su dirección: una dirigida se recorre únicamente de origen a destino y una no dirigida en ambos sentidos (a diferencia de Johnson, no hace falta que todas sean dirigidas). Los pesos deben ser 0 o mayores: si hay pesos negativos se avisa con las aristas afectadas y se sugiere Johnson. Un peso vacío cuenta como 1. Las aristas paralelas se consideran todas (gana la menor) y los bucles se ignoran. ∞ (en la tabla) significa nodo inalcanzable, con camino vacío. Cada paso fija un nodo: se muestra su distancia y las relajaciones intentadas desde él, con el valor viejo → nuevo y si mejoró o no; solo mejora una distancia estrictamente menor y, a igual distancia, gana el nodo que aparece antes en el grafo, así el resultado es siempre el mismo. Dijkstra trabaja desde un origen único; Johnson resuelve todos los pares a la vez y exige grafo dirigido. El límite es 100 nodos.',
+  },
+  {
+    icon: <Network className="h-4 w-4" />,
+    title: 'Árbol de expansión (Kruskal)',
+    description: 'Une todos los nodos con el menor peso total posible, ignorando la dirección.',
+    detail: 'Un árbol de expansión conecta todos los nodos sin ciclos y con el menor peso total; Kruskal ordena las aristas por peso y acepta cada una si une dos grupos de nodos distintos, o la rechaza si formaría un ciclo o si es un bucle. Puedes buscar el de peso MÍNIMO o MÁXIMO (mismo algoritmo, orden inverso). La dirección de las aristas se ignora: si hay dirigidas se avisa. Se admiten pesos negativos y cero, y un peso vacío cuenta como 1. Si el grafo es desconexo no es un error: se devuelve un bosque de expansión (un árbol por componente), con aviso y número de componentes. Con empates puede existir más de un árbol de igual costo: el desempate sigue el orden original de las aristas en el grafo, de modo que siempre se muestra el mismo. El paso a paso muestra cada arista evaluada, su decisión (aceptada o rechazada) con el motivo, los componentes vigentes con un color cada uno y el peso acumulado; se procesan todas las aristas, también después de completar el árbol, para que se vea el motivo de cada rechazo. Límites: 100 nodos y 500 aristas.',
   },
   {
     icon: <Crosshair className="h-4 w-4" />,

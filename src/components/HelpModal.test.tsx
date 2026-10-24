@@ -8,11 +8,13 @@ describe('HelpModal algorithm details', () => {
     cleanup();
   });
 
-  it('renders four algorithm cards and expands their accessible details', () => {
+  it('renders six algorithm cards and expands their accessible details', () => {
     render(<HelpModal />);
     fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
 
     expect(screen.getByText('Rutas interestelares (Johnson)')).toBeTruthy();
+    expect(screen.getByText('Camino mínimo (Dijkstra)')).toBeTruthy();
+    expect(screen.getByText('Árbol de expansión (Kruskal)')).toBeTruthy();
     expect(screen.getByText('Comando de misión (Asignación húngara)')).toBeTruthy();
     expect(screen.getByText('Esquina Noroeste (transporte)')).toBeTruthy();
     expect(screen.getByText('Árboles binarios de búsqueda')).toBeTruthy();
@@ -22,6 +24,35 @@ describe('HelpModal algorithm details', () => {
     fireEvent.click(treeCard);
     expect(treeCard.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText(/Pre-order visita raíz/)).toBeTruthy();
+  });
+
+  it('expands the Dijkstra card with what the algorithm really does', () => {
+    render(<HelpModal />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
+
+    const card = screen.getByRole('button', { name: /Camino mínimo \(Dijkstra\)/ });
+    expect(card.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(card);
+    expect(card.getAttribute('aria-expanded')).toBe('true');
+
+    expect(screen.getByText(/pesos negativos/)).toBeTruthy();
+    expect(screen.getByText(/Johnson exige|no hace falta que todas sean dirigidas/)).toBeTruthy();
+    expect(screen.getByText(/100 nodos/)).toBeTruthy();
+  });
+
+  it('expands the Kruskal card with the rule, the forest case and the tie-break', () => {
+    render(<HelpModal />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
+
+    const card = screen.getByRole('button', { name: /Árbol de expansión \(Kruskal\)/ });
+    expect(card.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(card);
+    expect(card.getAttribute('aria-expanded')).toBe('true');
+
+    expect(screen.getByText(/une dos grupos de nodos distintos/)).toBeTruthy();
+    expect(screen.getByText(/bosque de expansión/)).toBeTruthy();
+    expect(screen.getByText(/orden original de las aristas/)).toBeTruthy();
+    expect(screen.getByText(/100 nodos y 500 aristas/)).toBeTruthy();
   });
 });
 
