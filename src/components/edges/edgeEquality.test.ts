@@ -143,4 +143,18 @@ describe('areEdgePropsEqual', () => {
 
     expect(areEdgePropsEqual(prev, next)).toBe(true);
   });
+
+  it('repinta cuando la arista entra al camino de Johnson', () => {
+    const prev = edge({ data: { isPath: false } });
+    const next = edge({ data: { isPath: true } });
+
+    expect(areEdgePropsEqual(prev, next)).toBe(false);
+  });
+
+  it('trata isPath ausente como fuera del camino', () => {
+    const prev = edge({ data: { isPath: false } });
+    const next = edge({ data: {} });
+
+    expect(areEdgePropsEqual(prev, next)).toBe(true);
+  });
 });

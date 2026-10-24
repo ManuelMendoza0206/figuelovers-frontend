@@ -1,4 +1,4 @@
-import { Database, Download, List, Trash2, Upload } from 'lucide-react';
+import { Database, Download, HelpCircle, List, Orbit, Trash2, Upload } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { error, success } from '../hooks/useToast';
 import { GraphServiceAPI } from '../services/api';
@@ -20,7 +20,6 @@ import { useEditorEvent } from '../hooks/useEditorEvent';
 
 import { AdjListModal } from './AdjListModal';
 import { ConfirmDialog } from './ConfirmDialog';
-import { HelpModal } from './HelpModal';
 import { MatrixModal } from './MatrixModal';
 
 const describeError = (
@@ -38,7 +37,12 @@ const Spinner = () => (
   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border border-t-brand" />
 );
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  isHelpOpen?: boolean;
+  onOpenHelp?: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ isHelpOpen = false, onOpenHelp }) => {
   const {
     nodes,
     edges,
@@ -206,7 +210,7 @@ export const Navbar: React.FC = () => {
     <>
       <header className="relative z-30 w-full border-b border-white/10 bg-[#070d1dcc] shadow-sm backdrop-blur-xl">
         <div className="flex min-h-16 w-full items-center px-4 py-2 sm:px-6 lg:px-8">
-          
+
           {/* 1. Logo y Título */}
           <div className="flex shrink-0 items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-brand/30 shadow-[0_0_24px_rgba(114,230,224,0.16)]">
@@ -223,7 +227,7 @@ export const Navbar: React.FC = () => {
 
           {/* 2. Separador y Botón Limpiar (Izquierda) */}
           <div className="mx-6 hidden h-8 w-px bg-white/10 sm:block" />
-          
+
           <IconButton
             onClick={handleClearGraph}
             disabled={structureLocked}
@@ -240,10 +244,23 @@ export const Navbar: React.FC = () => {
 
           {/* 3. Acciones del lado derecho */}
           <div className="flex shrink-0 items-center gap-4">
-            
+
             {/* Vistas (Teal) */}
             <div className="flex items-center gap-2">
-              <HelpModal />
+              <IconButton
+                onClick={onOpenHelp}
+                aria-label="Ayuda"
+                aria-haspopup="dialog"
+                aria-expanded={isHelpOpen}
+                title="Abrir la ayuda de esta sección"
+                className="flex items-center gap-2 rounded-md border border-brand/25 bg-brand/10 px-3 py-1.5 text-brand transition-colors hover:bg-brand/20"
+              >
+                <span className="relative flex h-4 w-4 items-center justify-center" aria-hidden="true">
+                  <Orbit className="h-4 w-4" />
+                  <HelpCircle className="absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full bg-surface" />
+                </span>
+                <span className="hidden sm:inline font-semibold">Ayuda</span>
+              </IconButton>
 
               <IconButton
                 onClick={handleShowMatrix}
@@ -273,8 +290,8 @@ export const Navbar: React.FC = () => {
 
             {/* Archivos (Gris/Teal claro) */}
             <div className="flex items-center gap-2">
-              <IconButton 
-                onClick={handleExportJson} 
+              <IconButton
+                onClick={handleExportJson}
                 title="Guardar grafo en JSON"
                 aria-label="Guardar grafo en JSON"
                 className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-ink-muted transition-colors hover:bg-brand-muted hover:text-ink"
@@ -283,9 +300,9 @@ export const Navbar: React.FC = () => {
                 <span className="hidden sm:inline font-semibold">Guardar JSON</span>
               </IconButton>
 
-              <IconButton 
-                onClick={handleImportClick} 
-                disabled={isImporting || structureLocked} 
+              <IconButton
+                onClick={handleImportClick}
+                disabled={isImporting || structureLocked}
                 title={structureLocked ? LOCKED_TITLE : 'Cargar grafo desde JSON'}
                 aria-label="Cargar grafo desde JSON"
                 className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-ink-muted transition-colors hover:bg-brand-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"

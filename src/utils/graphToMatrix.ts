@@ -42,18 +42,12 @@ export interface GraphAssignmentTransfer {
 export const MAX_GRAPH_NODES = 20;
 
 export interface GraphTranslation {
-  matrix: number[][];
+  matrix: (number | null)[][];
   rowLabels: string[];
   colLabels: string[];
   objective: AssignmentObjective;
   edgeCount: number;
-  /**
-   * Pares [fila, columna] que quedaron en 0 porque el grafo no tiene
-   * esa conexion. NO son celdas bloqueadas: son editables como
-   * cualquier otra. El conteo solo se usa para avisarle al usuario
-   * cuantas tiene que revisar antes de confiarle el resultado al
-   * algoritmo.
-   */
+  /** Pares [fila, columna] sin una arista permitida en el grafo. */
   emptyCells: [number, number][];
 }
 
@@ -74,18 +68,8 @@ const weightOf = (edge: GraphTransferEdge): number =>
     : 1;
 
 /**
- * Las celdas sin conexion arrancan en 0 y quedan EDITABLES.
- *
- * Ojo con la consecuencia, porque es real: 0 es el valor mas barato, asi
- * que si dejas las celdas en cero el hungaro va a elegir exactamente
- * esas asignaciones (las que no existen en la constelación). La
- * traduccion te da el punto de partida, no la respuesta: revisa las
- * `emptyCells` y poneles el costo real, o un valor alto si querés que
- * esa pareja quede prohibida.
- *
- * Se decidio NO usar un sentinel automatico (un numero grande Derived
- * del rango de pesos) justamente para que la celda siga siendo un input
- * normal que el usuario puede tocar y entender.
+ * Las celdas sin conexion se representan como null. Esto conserva la
+ * diferencia entre una arista real de costo 0 y una pareja prohibida.
  */
 export const translateGraphToCostMatrix = (
   nodes: GraphTransferNode[],
@@ -124,8 +108,8 @@ export const translateGraphToCostMatrix = (
   const indexById = new Map(nodes.map((node, index) => [node.id, index]));
   const n = nodes.length;
 
-  const matrix: number[][] = Array.from({ length: n }, () =>
-    Array.from({ length: n }, () => 0)
+  const matrix: (number | null)[][] = Array.from({ length: n }, () =>
+    Array.from({ length: n }, () => null)
   );
 
   // Celdas que una arista toco, para poder distinguir las que quedan
@@ -191,4 +175,29 @@ export const translateGraphToCostMatrix = (
       emptyCells,
     },
   };
+};
+
+/**
+ * El endpoint existente recibe solo numeros. Las celdas null se envian con
+ * una penalizacion fuera del rango de cualquier solucion completamente
+ * permitida; luego la respuesta se valida contra la matriz nullable.
+ */
+export const serializeAssignmentMatrix = (
+  matrix: (number | null)[][],
+  maximize: boolean
+): number[][] => {
+  const values = matrix.flat().filter((value): value is number =>
+    typeof value === 'number' && Number.isFinite(value)
+  );
+  const minimum = values.length > 0 ? Math.min(...values) : 0;
+  const maximum = values.length > 0 ? Math.max(...values) : 0;
+  const size = Math.max(matrix.length, matrix[0]?.length ?? 0);
+  const span = Math.max(1, maximum - minimum);
+  const forbidden = maximize
+    ? minimum - span * (size + 1) - 1
+    : maximum + span * (size + 1) + 1;
+
+  return matrix.map((row) =>
+    row.map((value) => (value === null ? forbidden : value))
+  );
 };

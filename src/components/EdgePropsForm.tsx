@@ -11,6 +11,9 @@ const EdgeIcon: React.FC = () => (
   </svg>
 );
 
+const normalizeNumericInput = (value: string): string =>
+  value.replace(/^0+(?=\d)/, '');
+
 interface EdgePropsFormProps {
   edge: AppEdge;
   nodes: AppNode[];
@@ -95,7 +98,11 @@ export const EdgePropsForm: React.FC<EdgePropsFormProps> = ({
           label="Peso / Costo"
           placeholder="Ej. 10.5"
           value={edgeWeight}
-          onChange={(e) => setEdgeWeight(e.target.value)}
+          onFocus={(e) => {
+            const normalized = normalizeNumericInput(e.target.value);
+            setEdgeWeight(normalized);
+          }}
+          onChange={(e) => setEdgeWeight(normalizeNumericInput(e.target.value))}
           disabled={disabled}
         />
 

@@ -3,7 +3,7 @@ import type { SetStateAction } from 'react';
 
 import type { AssignmentResultData } from '../types/graph';
 
-const makeMatrix = (rows: number, cols: number): number[][] =>
+const makeMatrix = (rows: number, cols: number): (number | null)[][] =>
   Array.from({ length: rows }, () => Array.from({ length: cols }, () => 1));
 
 const initialState = () => ({
@@ -25,7 +25,7 @@ type AssignmentState = ReturnType<typeof initialState> & {
   setRows: (value: SetStateAction<number>) => void;
   setCols: (value: SetStateAction<number>) => void;
   setMaximize: (value: SetStateAction<boolean>) => void;
-  setMatrix: (value: SetStateAction<number[][]>) => void;
+  setMatrix: (value: SetStateAction<(number | null)[][]>) => void;
   setRowLabels: (value: SetStateAction<string[]>) => void;
   setColLabels: (value: SetStateAction<string[]>) => void;
   setResult: (value: AssignmentResultData | null) => void;

@@ -268,7 +268,9 @@ describe('constelaciones reales con las utilidades de algoritmos', () => {
     expect(result.translation.matrix).toHaveLength(graph.graph.nodes.length);
     result.translation.matrix.forEach((row) => {
       expect(row).toHaveLength(graph.graph.nodes.length);
-      row.forEach((cell) => expect(Number.isFinite(cell)).toBe(true));
+      row.forEach((cell) =>
+        expect(cell === null || Number.isFinite(cell)).toBe(true)
+      );
     });
   });
 

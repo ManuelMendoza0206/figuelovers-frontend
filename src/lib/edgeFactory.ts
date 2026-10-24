@@ -17,6 +17,9 @@ import type { AppEdge, AppEdgeData } from '../types/graph';
 
 export const BRAND_COLOR = '#72e6e0';
 
+/** Camino resaltado de Johnson. Oro sobre el vacio: se lee como "ruta", no como seleccion. */
+export const PATH_COLOR = '#ffd684';
+
 /**
  * Color del haz. Uno mas claro que la marca para que la linea se lea
  * como luz sobre el vacio y no como tinta sobre un panel.
