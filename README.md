@@ -26,10 +26,18 @@ Aplicación web para crear y explorar grafos, consultar sus representaciones y r
 | Algoritmo | Estado y comportamiento |
 |-----------|-------------------------|
 | **Johnson** | Implementado en el backend y disponible desde el editor. Calcula distancias y caminos mínimos entre todos los pares, acepta pesos negativos en grafos dirigidos e informa si hay un ciclo de peso negativo. Requiere que todas las aristas sean dirigidas. |
+| **Dijkstra** | Implementado en el backend y disponible desde el editor (`/dijkstra`). Calcula la distancia mínima desde un origen a todos los nodos (y opcionalmente resalta el camino a un destino). Respeta la dirección de cada arista: las dirigidas se recorren solo de origen a destino y las no dirigidas en ambos sentidos; no exige grafo dirigido. Requiere pesos ≥ 0 (con pesos negativos responde 400 remitido a Johnson), ignora bucles, considera todas las aristas paralelas (gana la menor) y trata un peso vacío como 1. Incluye traza paso a paso (nodo fijado y relajaciones), desempate determinista y límite de 100 nodos. |
+| **Kruskal** | Implementado en el backend y disponible desde el editor (`/kruskal`). Construye el árbol de expansión mínimo (o máximo, como opción) tratando el grafo como no dirigido: si hay aristas dirigidas lo advierte y las ignora. Ordena las aristas por peso (a igual peso, por su orden original) y acepta las que unen componentes distintos; rechaza bucles y las que formarían ciclo. Un grafo desconexo produce un bosque de expansión con aviso y número de componentes, no un error. Admite pesos negativos y cero, trata un peso vacío como 1 y procesa todas las aristas para mostrar el motivo de cada rechazo. Límites: 100 nodos y 500 aristas. |
 | **Asignación (húngaro)** | Implementado en el backend y disponible desde el editor. Resuelve matrices de costos para minimizar o maximizar, muestra las asignaciones y permite recorrer los pasos del algoritmo. Admite matrices rectangulares mediante filas/columnas ficticias; el máximo es 20 × 20. |
 | **Esquina Noroeste** | Implementado para problemas de transporte. Traduce nodos con roles de origen/destino, oferta y demanda, y los pesos de las aristas a una matriz de costos. Balancea con filas/columnas ficticias y muestra los pasos; una ruta sin arista es bloqueada y cualquier asignación positiva a ella marca la solución como no factible. Es una solución inicial, no necesariamente óptima. |
 | **Árbol binario de búsqueda** | Permite insertar valores uno a uno o generar hasta 31 valores aleatorios únicos de 1 a 99, mostrar pre-order/in-order/post-order y reconstruir con in-order + pre-order o in-order + post-order. También puede cargar un árbol binario desde el grafo del editor y enviar el árbol al grafo. |
-| **Dijkstra y BFS** | Los endpoints existen en la API, pero actualmente devuelven respuestas simuladas y no ejecutan esos algoritmos sobre el grafo. No se presentan como funciones operativas de la interfaz. |
+| **BFS** | **Stub:** el endpoint existe en la API (`/bfs`) pero devuelve una respuesta simulada (`simulated: true`) y no ejecuta la búsqueda en anchura sobre el grafo. No se presenta en la interfaz como función operativa. |
+
+Dijkstra y Kruskal solo LEEN el grafo: no modifican el lienzo ni el estado del editor, por lo que funcionan igual sobre proyectos libres y sobre constelaciones bloqueadas.
+
+En Dijkstra, la tabla muestra ∞ para los nodos inalcanzables y su camino como vacío. Puedes elegir destino para ver la ruta concreta y su distancia total; cambiar el origen, el destino o el grafo oculta el resultado porque la firma de la entrada ya no coincide. Con pesos negativos la propia pantalla avisa y enlaza a Johnson.
+
+En Kruskal, la lista de aristas muestra todas las decisiones (aceptada/rechazada con su motivo), el peso total y los componentes; si el grafo es desconexo aparece el aviso de bosque. Cambiar el objetivo o el grafo oculta el resultado.
 
 Las entradas, los resultados y el paso seleccionado de Asignación y Esquina Noroeste se conservan al navegar entre secciones durante la misma sesión de la página. Se reinician al recargar el navegador.
 
@@ -49,6 +57,8 @@ Los árboles reconstruidos a partir de dos recorridos son árboles binarios gene
 | `/editor` | Editor de grafos |
 | `/galaxy/:projectId` | Editor del grafo de un proyecto guardado |
 | `/johnson` | Cálculo de rutas mínimas entre todos los pares |
+| `/dijkstra` | Camino mínimo desde un origen (con paso a paso) |
+| `/kruskal` | Árbol de expansión mínimo o máximo |
 | `/assignment` | Problema de asignación |
 | `/northwest` | Método de la esquina noroeste para transporte |
 | `/trees` | Construcción, recorrido y reconstrucción de árboles |
@@ -137,8 +147,9 @@ Los endpoints de la aplicación, excepto la comprobación raíz, están bajo el 
 | `POST` | `/api/v1/graph/algorithms/tree/build` | Construcción de ABB por valores o números aleatorios |
 | `POST` | `/api/v1/graph/algorithms/tree/traverse` | Recorrido de un árbol o validación/recorrido de un grafo del editor |
 | `POST` | `/api/v1/graph/algorithms/tree/reconstruct` | Reconstrucción a partir de in-order y pre-order o post-order |
-| `POST` | `/api/v1/graph/algorithms/dijkstra` | Stub: respuesta simulada |
-| `POST` | `/api/v1/graph/algorithms/bfs` | Stub: respuesta simulada |
+| `POST` | `/api/v1/graph/algorithms/dijkstra` | Camino mínimo desde un origen (distancias a todos los nodos, camino opcional a un destino y traza paso a paso); requiere pesos ≥ 0 |
+| `POST` | `/api/v1/graph/algorithms/kruskal` | Árbol de expansión mínimo (o máximo); trata el grafo como no dirigido y devuelve bosque si es desconexo |
+| `POST` | `/api/v1/graph/algorithms/bfs` | Stub: respuesta simulada (BFS aún no está implementado) |
 
 ## Comandos útiles
 
@@ -182,7 +193,7 @@ proyecto/
     ├── app/
     │   ├── api/                # Rutas de salud, grafos y algoritmos
     │   ├── schemas/            # Modelos de petición y respuesta
-    │   └── services/           # Lógica de grafos, Johnson, asignación, transporte y árboles
+    │   └── services/           # Lógica de grafos, Johnson, Dijkstra, Kruskal, asignación, transporte y árboles
     ├── tests/                  # Pruebas de grafos y algoritmos
     └── requirements.txt
 ```

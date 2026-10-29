@@ -1,4 +1,4 @@
-import { ChevronDown, Crosshair, Route, Settings, Truck, GitBranch, ChartNoAxesColumn } from 'lucide-react';
+import { ChartNoAxesColumn, ChevronDown, Crosshair, GitBranch, Navigation2, Network, Route, Settings, Truck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -172,6 +172,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ workbench, children }) => {
               <button type="button" onClick={() => openAlgorithm('/johnson')} className={`flex items-center justify-center gap-2 rounded-xl border px-2 py-2 text-[11px] font-bold transition ${location.pathname === '/johnson' ? 'border-brand/40 bg-brand/10 text-brand' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-brand/25 hover:text-ink'}`}>
                 <Route className="h-4 w-4" />
                 <span>JOHNSON</span>
+              </button>
+              <button type="button" onClick={() => openAlgorithm('/dijkstra')} className={`flex items-center justify-center gap-2 rounded-xl border px-2 py-2 text-[11px] font-bold transition ${location.pathname === '/dijkstra' ? 'border-cyan-300/40 bg-cyan-300/10 text-cyan-200' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-cyan-300/25 hover:text-ink'}`}>
+                <Navigation2 className="h-4 w-4" />
+                <span>DIJKSTRA</span>
+              </button>
+              <button type="button" onClick={() => openAlgorithm('/kruskal')} className={`flex items-center justify-center gap-2 rounded-xl border px-2 py-2 text-[11px] font-bold transition ${location.pathname === '/kruskal' ? 'border-orange-300/40 bg-orange-300/10 text-orange-200' : 'border-white/10 bg-white/[0.03] text-ink-muted hover:border-orange-300/25 hover:text-ink'}`}>
+                <Network className="h-4 w-4" />
+                <span>KRUSKAL</span>
               </button>
               <button
                 type="button"

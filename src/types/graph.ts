@@ -61,9 +61,95 @@ export interface GraphValidationData {
   lista_adyacencia: Record<string, AdjacencyListItem[]>;
 }
 
-export interface DijkstraData {
-  camino: string[];
-  costo_total: number;
+/**
+ * Relajación: un intento de mejora de distancia saliendo del nodo
+ * fijado en ese paso. `old_distance` null = infinito (sin camino aún).
+ */
+export interface DijkstraRelaxation {
+  from: string;
+  to: string;
+  edge_id: string;
+  old_distance: number | null;
+  new_distance: number;
+  improved: boolean;
+}
+
+export interface DijkstraStep {
+  step: number;
+  /** Nodo cuya distancia queda definitiva en este paso. */
+  node: string;
+  distance: number;
+  relaxations: DijkstraRelaxation[];
+  /** Mejor distancia conocida de cada nodo tras el paso (null = ∞). */
+  distances_snapshot: Record<string, number | null>;
+  visited_snapshot: string[];
+}
+
+export interface DijkstraTargetPath {
+  nodes: string[];
+  edges: string[];
+  /** null si el destino es inalcanzable. */
+  total_distance: number | null;
+}
+
+export interface DijkstraResultData {
+  source: string;
+  target: string | null;
+  /** Distancia mínima desde el origen a cada nodo; null = inalcanzable. */
+  distances: Record<string, number | null>;
+  predecessors: Record<string, string | null>;
+  paths: Record<string, string[]>;
+  order_visited: string[];
+  steps: DijkstraStep[];
+  target_path: DijkstraTargetPath | null;
+  warnings: string[];
+}
+
+export interface DijkstraPayload {
+  graph: GraphPayloadSchema;
+  source: string;
+  /** Opcional: solo resalta un camino; las distancias van a todos. */
+  target?: string | null;
+}
+
+export type KruskalObjective = 'min' | 'max';
+
+export interface KruskalEdge {
+  id: string;
+  source: string;
+  target: string;
+  /** Peso ya resuelto (un peso vacío cuenta como 1). */
+  weight: number;
+}
+
+export interface KruskalStep {
+  step: number;
+  edge: KruskalEdge;
+  decision: 'accepted' | 'rejected';
+  /** "une componentes distintos" / "formaría un ciclo" / "bucle". */
+  reason: string;
+  /** Componentes (listas de ids de nodo) tras aplicar el paso. */
+  components_snapshot: string[][];
+  total_weight_so_far: number;
+}
+
+export interface KruskalResultData {
+  /** Aristas aceptadas, en el orden en que se aceptaron. */
+  mst_edges: KruskalEdge[];
+  total_weight: number;
+  components: number;
+  is_connected: boolean;
+  /** IDs de todas las aristas en el orden en que se procesaron. */
+  sorted_edges: string[];
+  steps: KruskalStep[];
+  /** True si el grafo tenía aristas dirigidas (se ignoró la dirección). */
+  ignored_directions: boolean;
+  warnings: string[];
+}
+
+export interface KruskalPayload {
+  graph: GraphPayloadSchema;
+  objective: KruskalObjective;
 }
 
 export interface BfsData {

@@ -1,7 +1,7 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { GitBranch } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { useGraphStore } from '../store/useGraphStore';
@@ -17,6 +17,11 @@ import { Sidebar } from './Sidebar';
  */
 
 const mount = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
+
+const CurrentPath: React.FC = () => {
+  const location = useLocation();
+  return <span>{location.pathname}{location.search}</span>;
+};
 
 beforeEach(() => {
   useGraphStore.getState().clearGraph();
@@ -52,5 +57,22 @@ describe('Sidebar', () => {
     expect(screen.getByText('Árbol binario')).toBeTruthy();
     expect(screen.queryByText('Selecciona un elemento')).toBeNull();
     expect(screen.queryByText('Propiedades')).toBeNull();
+  });
+
+  it.each([
+    ['DIJKSTRA', '/dijkstra'],
+    ['KRUSKAL', '/kruskal'],
+  ])('navega a %s desde las herramientas del sidebar', (label, path) => {
+    mount(
+      <>
+        <Sidebar />
+        <CurrentPath />
+      </>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar herramientas de algoritmos' }));
+    fireEvent.click(screen.getByRole('button', { name: label }));
+
+    expect(screen.getByText(`${path}?from=%2Feditor`)).toBeTruthy();
   });
 });
