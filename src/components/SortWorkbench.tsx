@@ -4,13 +4,17 @@ import {
   CornerDownRight,
   Crosshair,
   Dices,
+  GitMerge,
   ListOrdered,
   RotateCcw,
+  Waves,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useState } from 'react';
 
+import { AlgorithmFileActions } from './AlgorithmFileActions';
 import { useSortStore } from '../store/useSortStore';
+import { readSortFileData } from '../utils/algorithmFiles';
 import {
   MAX_SORT_VALUE,
   MAX_SORT_VALUES,
@@ -37,6 +41,8 @@ const ALGORITHM_ICONS: Record<SortAlgorithm, LucideIcon> = {
   bubble: ArrowLeftRight,
   selection: Crosshair,
   insertion: CornerDownRight,
+  shell: Waves,
+  merge: GitMerge,
 };
 
 const RANDOM_PRESETS = [8, 16, 24, 32];
@@ -92,8 +98,10 @@ const parseValuesInput = (input: string): ParseResult => {
 export const SortWorkbench: React.FC = () => {
   const {
     algorithm,
+    direction,
     items,
     setAlgorithm,
+    setDirection,
     setValues,
     generateRandom,
     clear,
@@ -130,6 +138,21 @@ export const SortWorkbench: React.FC = () => {
   const switchMode = (nextMode: 'manual' | 'random'): void => {
     setMode(nextMode);
     setErrorMessage(null);
+  };
+
+  const loadFile = (raw: unknown): string | null => {
+    try {
+      const data = readSortFileData(raw);
+      setDirection(data.direction);
+      setAlgorithm(data.algorithm);
+      setValues(data.values);
+      setValuesInput(data.values.join(', '));
+      setMode('manual');
+      setErrorMessage(null);
+      return null;
+    } catch (error: unknown) {
+      return error instanceof Error ? error.message : 'No se pudo cargar la lista.';
+    }
   };
 
   return (
@@ -322,8 +345,25 @@ export const SortWorkbench: React.FC = () => {
         )}
 
         <p className="mt-2 text-[11px] leading-4 text-ink-muted">
-          La lista, el algoritmo y la velocidad se conservan al cambiar de sección.
+          La lista, el algoritmo, la dirección y la velocidad se conservan al cambiar de sección.
         </p>
+
+        <div className="mt-3 border-t border-border pt-3">
+          <AlgorithmFileActions
+            algorithm="sort"
+            label="Sort"
+            data={{
+              values: items.map((item) => item.value),
+              algorithm,
+              direction,
+            }}
+            onLoad={loadFile}
+            canSave={items.length > 0}
+          />
+          <p className="mt-2 text-[11px] leading-4 text-ink-muted">
+            Guarda la lista, el algoritmo y la dirección para volver a ejecutarlos.
+          </p>
+        </div>
       </section>
 
       {errorMessage && (

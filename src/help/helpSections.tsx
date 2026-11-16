@@ -13,6 +13,7 @@ import {
   List,
   ListOrdered,
   MousePointerClick,
+  Pencil,
   Play,
   Plus,
   RefreshCw,
@@ -476,6 +477,21 @@ export const HELP_SECTIONS: Record<HelpSectionId, HelpSection> = {
           'El panel derecho muestra el árbol y los tres recorridos posibles.',
       },
       {
+        title: 'Reconstruí desde dos recorridos',
+        detail:
+          'En «Reconstruir desde dos recorridos» elegí dos recorridos distintos. Con In-order la reconstrucción es directa; con Pre-order + Post-order se muestra una reconstrucción posible y el In-order resultante.',
+      },
+      {
+        title: 'Editá un recorrido',
+        detail:
+          'Cada fila tiene «Editar». Cambiá los valores y presioná «Actualizar»: el árbol se reconstruye y las tres filas se reorganizan, aunque el orden no sea un recorrido válido. La fila editada también puede cambiar.',
+      },
+      {
+        title: 'Editá los números aleatorios',
+        detail:
+          'Después de «Generar árbol», usá «Editar números» en «Insertados» para cambiar la lista y presioná «Aplicar».',
+      },
+      {
         title: 'Elegí el orden',
         detail:
           'En el select «Orden» elegí Pre-order, In-order o Post-order.',
@@ -523,6 +539,22 @@ export const HELP_SECTIONS: Record<HelpSectionId, HelpSection> = {
         description: 'Iniciá la visita con el orden elegido.',
       },
       {
+        icon: <GitBranch className="h-4 w-4" aria-hidden="true" />,
+        label: 'Reconstruir árbol',
+        description:
+          'Armá el árbol a partir de In-order + Pre-order, In-order + Post-order o Pre-order + Post-order (reconstrucción posible).',
+      },
+      {
+        icon: <Pencil className="h-4 w-4" aria-hidden="true" />,
+        label: 'Editar / Actualizar',
+        description: 'Editá una fila y recalculá el árbol y los otros dos recorridos.',
+      },
+      {
+        icon: <Pencil className="h-4 w-4" aria-hidden="true" />,
+        label: 'Editar números',
+        description: 'Cambiá la lista generada en modo aleatorio y reconstruí el árbol.',
+      },
+      {
         icon: <SendHorizontal className="h-4 w-4" aria-hidden="true" />,
         label: 'Enviar al editor',
         description: 'Reemplazá el grafo actual con el árbol construido.',
@@ -531,6 +563,8 @@ export const HELP_SECTIONS: Record<HelpSectionId, HelpSection> = {
     notes: [
       'El máximo práctico es de 31 nodos. En un ABB los valores no se repiten; los menores van a la izquierda y los mayores a la derecha.',
       'Si cargás un grafo que no cumple la propiedad de búsqueda, se usa como árbol binario general.',
+      'Al editar un recorrido, «Actualizar» reconstruye un ABB: Pre-order usa el orden escrito, Post-order lo invierte e In-order ordena los valores y arma un árbol balanceado.',
+      'Pre-order + Post-order no siempre definen un árbol único: si el par es compatible con un ABB, se usa esa interpretación; si no, se elige el hijo izquierdo y se avisa en pantalla.',
       'El árbol se guarda en el grafo como aristas dirigidas padre → hijo con los metadatos treeValue y treeSide.',
       'El árbol y su recorrido se conservan al cambiar de sección.',
     ],
@@ -541,19 +575,24 @@ export const HELP_SECTIONS: Record<HelpSectionId, HelpSection> = {
     eyebrow: 'Algoritmos de ordenamiento',
     title: 'SORT · ordenar en barras',
     summary:
-      'Ordena una lista con burbuja, selección o inserción y mirá cada comparación y cada movimiento.',
+      'Ordena una lista con burbuja, selección, inserción, shell o merge y mirá cada comparación y cada movimiento.',
     fabLabel: 'Sort',
     icon: <ArrowUpDown className="h-5 w-5" aria-hidden="true" />,
     steps: [
       {
         title: 'Elegí el algoritmo',
         detail:
-          'En el panel Sort elegí «Burbuja», «Selección» o «Inserción». Los tres ordenan de menor a mayor.',
+          'En el panel Sort elegí «Burbuja», «Selección», «Inserción», «Shell» o «Merge». Los cinco pueden ordenar de menor a mayor o de mayor a menor.',
       },
       {
         title: 'Cargá los números',
         detail:
           'En «Manual», escribí los valores separados por comas o espacios y presioná «Aplicar lista». En «Aleatorio», elegí la cantidad y presioná «Generar números».',
+      },
+      {
+        title: 'Pasá la lista a Árboles',
+        detail:
+          'Con «Pasar a Árboles» enviás el orden visible actual al constructor de árboles. Se precarga el lote en «Valores»; los repetidos se omiten porque Árboles no los acepta.',
       },
       {
         title: 'Reproducí la animación',
@@ -581,6 +620,16 @@ export const HELP_SECTIONS: Record<HelpSectionId, HelpSection> = {
         icon: <Check className="h-4 w-4" aria-hidden="true" />,
         label: 'Aplicar lista / Vaciar',
         description: 'Aplican los números escritos o limpian la lista actual.',
+      },
+      {
+        icon: <ArrowUpDown className="h-4 w-4" aria-hidden="true" />,
+        label: 'Menor → mayor / Mayor → menor',
+        description: 'Cambian el sentido del ordenamiento sin volver a cargar la lista.',
+      },
+      {
+        icon: <Trash2 className="h-4 w-4" aria-hidden="true" />,
+        label: 'Limpiar',
+        description: 'Quita la lista actual y deja la escena vacía para empezar otra vez.',
       },
       {
         icon: <Dices className="h-4 w-4" aria-hidden="true" />,
@@ -612,13 +661,19 @@ export const HELP_SECTIONS: Record<HelpSectionId, HelpSection> = {
         label: 'Progreso del ordenamiento',
         description: 'Permite saltar a cualquier paso de la animación.',
       },
+      {
+        icon: <Workflow className="h-4 w-4" aria-hidden="true" />,
+        label: 'Pasar a Árboles',
+        description: 'Abre Árboles con el orden visible precargado en el constructor.',
+      },
     ],
     notes: [
       'Se permiten entre 2 y 40 valores, con repetidos. Cada valor manual debe ser un entero entre 1 y 999.',
       'El modo aleatorio genera valores únicos entre 5 y 99 para que las barras se distingan.',
-      'Burbuja empuja el mayor al final de cada pasada; selección lleva el mínimo al frente; inserción desliza cada número a la zona ordenada.',
-      'Amarillo = comparación; violeta = movimiento; celeste = mínimo o clave; turquesa = zona ordenada. En burbuja y selección esa zona ya es definitiva; en inserción todavía puede correrse al insertar el siguiente número.',
-      'La lista, el algoritmo, el progreso y la velocidad se conservan al cambiar de sección.',
+      'Burbuja empuja el extremo del orden al final de cada pasada; selección lleva el extremo restante al frente; inserción desliza cada número a la zona ordenada; shell ordena por saltos decrecientes y termina con inserción; merge divide, ordena mitades y las combina.',
+      'Amarillo = comparación; violeta = movimiento; celeste = mínimo o clave; turquesa = zona ordenada. En burbuja y selección esa zona ya es definitiva; en inserción todavía puede correrse al insertar el siguiente número; en shell aparece en la última pasada y en merge recién al final.',
+      'La lista, el algoritmo, la dirección, el progreso y la velocidad se conservan al cambiar de sección.',
+      '«Pasar a Árboles» envía el orden visible actual y omite repetidos; en Árboles revisá el lote y presioná «Agregar».',
     ],
   },
 };

@@ -1,13 +1,16 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AlertTriangle, PackageCheck, Truck } from 'lucide-react';
+import { AlgorithmFileActions } from '../components/AlgorithmFileActions';
 import { BackButton } from '../components/BackButton';
 import { Sidebar } from '../components/Sidebar';
 import { GraphServiceAPI, isCanceled } from '../services/api';
 import { useGraphStore } from '../store/useGraphStore';
 import { useNorthwestStore } from '../store/useNorthwestStore';
 import { Button } from '../ui/Button';
+import { readGraphAlgorithmFileData } from '../utils/algorithmFiles';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { buildGraphPayload, graphPayloadToFlow } from '../utils/graphFile';
 import { translateGraphToNorthwest } from '../utils/graphToNorthwest';
 import { saveProjectGraph } from '../utils/projectStorage';
 
@@ -58,8 +61,8 @@ const LegendItem: React.FC<{ swatch: string; children: React.ReactNode }> = ({
 const NorthwestPage: React.FC = () => {
   const location = useLocation();
   const returnTo = new URLSearchParams(location.search).get('from') ?? '/editor';
-  const { nodes, edges, updateNodeData } = useGraphStore();
-  const { result, resultSignature, stepIndex, setResult, setStepIndex } =
+  const { nodes, edges, updateNodeData, loadGraph } = useGraphStore();
+  const { result, resultSignature, stepIndex, setResult, setStepIndex, reset } =
     useNorthwestStore();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -112,6 +115,24 @@ const NorthwestPage: React.FC = () => {
   const updateAmount = (nodeId: string, field: 'supply' | 'demand', value: string) => {
     const amount = value === '' ? 0 : Number(value);
     persistNodeData(nodeId, { [field]: Number.isFinite(amount) ? amount : 0 });
+  };
+
+  const loadNorthwestFile = (raw: unknown): string | null => {
+    try {
+      const data = readGraphAlgorithmFileData(raw);
+      const converted = graphPayloadToFlow(data.graph);
+
+      request.current?.abort();
+      request.current = null;
+      setLoading(false);
+
+      loadGraph(converted.nodes, converted.edges);
+      reset();
+      setErrorMessage(null);
+      return null;
+    } catch (error: unknown) {
+      return error instanceof Error ? error.message : 'No se pudo cargar el grafo.';
+    }
   };
 
   const run = async () => {
@@ -178,9 +199,19 @@ const NorthwestPage: React.FC = () => {
         <p className="mt-2 max-w-lg text-sm text-ink-muted">
           Carga o crea una constelación en el editor y vuelve a Esquina Noroeste.
         </p>
-        <div className="mt-5 flex gap-3">
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
           <Link className="rounded-xl bg-brand px-4 py-2 text-sm font-bold text-[#07101f] transition hover:bg-brand-hover" to="/editor">Abrir editor</Link>
           <Link className="rounded-xl border border-white/15 px-4 py-2 text-sm text-ink transition hover:border-brand/40 hover:text-brand" to="/dashboard">Ver proyectos</Link>
+        </div>
+        <div className="mt-5">
+          <AlgorithmFileActions
+            algorithm="graph"
+            label="Noroeste"
+            data={{ graph: buildGraphPayload(nodes, edges) }}
+            onLoad={loadNorthwestFile}
+            canSave={false}
+            disabled={loading}
+          />
         </div>
       </div>
     );
@@ -189,9 +220,19 @@ const NorthwestPage: React.FC = () => {
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden text-ink">
       <main className="flex min-w-0 flex-1 flex-col gap-6 overflow-auto p-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <BackButton to={returnTo} />
-          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">supply routes / 03</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">supply routes / 03</span>
+            <AlgorithmFileActions
+              algorithm="graph"
+              label="Noroeste"
+              data={{ graph: buildGraphPayload(nodes, edges) }}
+              onLoad={loadNorthwestFile}
+              canSave={nodes.length > 0}
+              disabled={loading}
+            />
+          </div>
         </div>
 
         <header className="glass-panel rise-in rounded-2xl p-5">

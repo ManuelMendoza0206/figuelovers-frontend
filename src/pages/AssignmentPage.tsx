@@ -1,10 +1,12 @@
 import { ArrowRight, Info, Layers } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { AlgorithmFileActions } from '../components/AlgorithmFileActions';
 import { BackButton } from '../components/BackButton';
 import { Sidebar } from '../components/Sidebar';
 import { error as showError } from '../hooks/useToast';
 import { GraphServiceAPI, isCanceled } from '../services/api';
+import { readAssignmentFileData } from '../utils/algorithmFiles';
 import { extractApiErrorMessage } from '../utils/apiError';
 import type { AssignmentResultData } from '../types/graph';
 import type { GraphAssignmentTransfer } from '../utils/graphToMatrix';
@@ -383,6 +385,30 @@ const AssignmentPage: React.FC = () => {
     }
   };
 
+  const loadAssignmentFile = (raw: unknown): string | null => {
+    try {
+      const data = readAssignmentFileData(raw);
+      setBoardSource(false);
+      setAppliedBoard(null);
+      setRows(data.rows);
+      setCols(data.cols);
+      setMatrix(data.matrix);
+      setRowLabels(data.rowLabels);
+      setColLabels(data.colLabels);
+      setMaximize(data.maximize);
+      setResult(null);
+      setResultSignature(null);
+      setShowProcess(false);
+      setCurrentStep(0);
+      setErrorMessage(null);
+      setNoSolution(false);
+      setEditingProhibitedCell(null);
+      return null;
+    } catch (error: unknown) {
+      return error instanceof Error ? error.message : 'No se pudo cargar la asignación.';
+    }
+  };
+
   const stepCount = displaySteps.length;
   const activeStep =
     showProcess && stepCount > 0
@@ -512,9 +538,25 @@ const AssignmentPage: React.FC = () => {
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden text-ink">
       <main className="flex min-w-0 flex-1 flex-col gap-6 overflow-auto p-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <BackButton to={returnTo} />
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">mission control / 06</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">mission control / 06</span>
+          <AlgorithmFileActions
+            algorithm="assignment"
+            label="Asignación"
+            data={{
+              rows,
+              cols,
+              maximize,
+              matrix,
+              rowLabels: rowLabels.slice(0, rows),
+              colLabels: colLabels.slice(0, cols),
+            }}
+            onLoad={loadAssignmentFile}
+            disabled={loading}
+          />
+        </div>
       </div>
 
       <header className="glass-panel rise-in rounded-2xl p-5 sm:p-6">

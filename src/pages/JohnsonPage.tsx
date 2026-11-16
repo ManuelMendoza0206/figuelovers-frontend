@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { AlgorithmFileActions } from '../components/AlgorithmFileActions';
 import { BackButton } from '../components/BackButton';
 import { JohnsonResultView } from '../components/JohnsonResultView';
 import { Sidebar } from '../components/Sidebar';
@@ -10,11 +11,12 @@ import {
   getJohnsonPath,
   useJohnsonResult,
 } from '../store/useJohnsonResult';
+import { readGraphAlgorithmFileData } from '../utils/algorithmFiles';
 import { extractApiErrorMessage } from '../utils/apiError';
-import { buildGraphPayload } from '../utils/graphFile';
+import { buildGraphPayload, graphPayloadToFlow } from '../utils/graphFile';
 
 const JohnsonPage: React.FC = () => {
-  const { nodes, edges, updateNodeData } = useGraphStore();
+  const { nodes, edges, updateNodeData, loadGraph } = useGraphStore();
   const location = useLocation();
   const navigate = useNavigate();
   const returnTo = new URLSearchParams(location.search).get('from') ?? '/editor';
@@ -130,14 +132,48 @@ const JohnsonPage: React.FC = () => {
     }
   };
 
+  const loadJohnsonFile = (raw: unknown): string | null => {
+    try {
+      const data = readGraphAlgorithmFileData(raw);
+      const converted = graphPayloadToFlow(data.graph);
+      loadGraph(converted.nodes, converted.edges);
+      clearJohnsonResult();
+
+      const nextNodeIds = converted.nodes.map((node) => node.id);
+      const nextSource =
+        data.source && nextNodeIds.includes(data.source)
+          ? data.source
+          : (nextNodeIds[0] ?? '');
+      const nextTarget =
+        data.target && nextNodeIds.includes(data.target)
+          ? data.target
+          : (nextNodeIds[1] ?? nextSource);
+      setJohnsonEndpoints(nextSource, nextTarget);
+      setErrorMessage(null);
+      return null;
+    } catch (error: unknown) {
+      return error instanceof Error ? error.message : 'No se pudo cargar el grafo.';
+    }
+  };
+
   const selectedPath = getJohnsonPath(freshResult, source, target);
 
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden text-ink">
       <main className="flex min-w-0 flex-1 flex-col gap-6 overflow-auto p-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <BackButton to={returnTo} />
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">algoritmo</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">algoritmo</span>
+          <AlgorithmFileActions
+            algorithm="graph"
+            label="Johnson"
+            data={{ graph: buildGraphPayload(nodes, edges), source, target }}
+            onLoad={loadJohnsonFile}
+            canSave={nodes.length > 0}
+            disabled={loading}
+          />
+        </div>
       </div>
       <div className="glass-panel rounded-2xl p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

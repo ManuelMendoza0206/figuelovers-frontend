@@ -32,4 +32,29 @@ describe('helpSections', () => {
 
     expect(notes).toContain('en inserción todavía puede correrse');
   });
+
+  it('la guía de árboles explica la edición de recorridos', () => {
+    const text = [
+      HELP_SECTIONS.trees.summary,
+      ...HELP_SECTIONS.trees.steps.map((step) => step.detail),
+      ...(HELP_SECTIONS.trees.notes ?? []),
+    ].join(' ');
+
+    expect(text).toContain('Editar');
+    expect(text).toContain('Actualizar');
+    expect(text).toContain('Reconstruir');
+  });
+
+  it('la guía de sort menciona los cinco algoritmos', () => {
+    const text = [
+      HELP_SECTIONS.sort.summary,
+      ...HELP_SECTIONS.sort.steps.map((step) => step.detail),
+      ...(HELP_SECTIONS.sort.notes ?? []),
+    ].join(' ');
+
+    for (const name of ['Burbuja', 'Selección', 'Inserción', 'Shell', 'Merge']) {
+      expect(text).toContain(name);
+    }
+    expect(text).toContain('Pasar a Árboles');
+  });
 });

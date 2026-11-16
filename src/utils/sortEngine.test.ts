@@ -5,6 +5,7 @@ import {
   SORT_ALGORITHMS,
   toSortItems,
   type SortAlgorithm,
+  type SortDirection,
   type SortStep,
 } from './sortEngine';
 
@@ -14,8 +15,11 @@ const valueOf = (values: number[], id: string): number =>
 const valuesInOrder = (step: SortStep, values: number[]): number[] =>
   step.order.map((id) => valueOf(values, id));
 
-const stepsFor = (values: number[], algorithm: SortAlgorithm): SortStep[] =>
-  buildSortSteps(toSortItems(values), algorithm);
+const stepsFor = (
+  values: number[],
+  algorithm: SortAlgorithm,
+  direction: SortDirection = 'asc'
+): SortStep[] => buildSortSteps(toSortItems(values), algorithm, direction);
 
 const ALGORITHMS: SortAlgorithm[] = SORT_ALGORITHMS.map((item) => item.id);
 
@@ -30,6 +34,16 @@ describe('sortEngine', () => {
     expect(last.comparing).toHaveLength(0);
     expect(last.moving).toHaveLength(0);
     expect(last.lifted).toBeNull();
+  });
+
+  it.each(ALGORITHMS)('%s termina ordenado de mayor a menor', (algorithm) => {
+    const values = [9, 4, 7, 1, 8, 2, 6, 3, 5];
+    const steps = stepsFor(values, algorithm, 'desc');
+    const last = steps[steps.length - 1];
+
+    expect(valuesInOrder(last, values)).toEqual([9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    expect(last.sorted).toHaveLength(values.length);
+    expect(last.note).toContain('descendente');
   });
 
   it.each(ALGORITHMS)('%s conserva los mismos elementos en cada paso', (algorithm) => {
@@ -85,6 +99,33 @@ describe('sortEngine', () => {
     const steps = stepsFor(values, 'insertion');
 
     expect(valuesInOrder(steps[steps.length - 1], values)).toEqual([1, 1, 2, 3, 3]);
+  });
+
+  it('shell usa saltos decrecientes y levanta la clave', () => {
+    const values = [9, 4, 7, 1, 8, 2, 6, 3, 5];
+    const steps = stepsFor(values, 'shell');
+
+    expect(steps.some((step) => step.note.includes('salto'))).toBe(true);
+    expect(steps.some((step) => step.lifted !== null && step.note.includes('Tomamos'))).toBe(true);
+    expect(steps.some((step) => step.note.includes('Última pasada'))).toBe(true);
+    expect(steps[steps.length - 1].sorted).toHaveLength(values.length);
+  });
+
+  it('merge combina bloques y conserva el orden de los iguales', () => {
+    const values = [2, 1, 2, 1];
+    const items = toSortItems(values);
+    const steps = buildSortSteps(items, 'merge');
+    const last = steps[steps.length - 1];
+
+    expect(steps.some((step) => step.note.includes('Combinamos'))).toBe(true);
+    expect(steps.some((step) => step.moving.length > 0)).toBe(true);
+    expect(last.order).toEqual(['item-1', 'item-3', 'item-0', 'item-2']);
+  });
+
+  it('merge mueve un bloque cuando el elemento derecho se adelanta', () => {
+    const steps = stepsFor([3, 4, 1, 2], 'merge');
+
+    expect(steps.some((step) => step.moving.length >= 3)).toBe(true);
   });
 
   it('con un solo elemento no inventa comparaciones', () => {

@@ -1,5 +1,5 @@
 /**
- * Motor de los tres ordenamientos de la sección Sort.
+ * Motor de los cinco ordenamientos de la sección Sort.
  *
  * El motor es puro: recibe los números y devuelve una lista de PASOS, no
  * toca React ni el DOM. Cada paso es una foto completa del arreglo (ids
@@ -18,7 +18,10 @@
  * cambio de alturas.
  */
 
-export type SortAlgorithm = 'bubble' | 'selection' | 'insertion';
+export type SortAlgorithm = 'bubble' | 'selection' | 'insertion' | 'shell' | 'merge';
+
+/** Sentido del ordenamiento: de menor a mayor o de mayor a menor. */
+export type SortDirection = 'asc' | 'desc';
 
 export interface SortItem {
   id: string;
@@ -56,14 +59,14 @@ export const SORT_ALGORITHMS: SortAlgorithmInfo[] = [
   {
     id: 'bubble',
     label: 'Burbuja',
-    blurb: 'Compara vecinos y empuja el mayor al final de cada pasada.',
+    blurb: 'Compara vecinos y empuja el extremo del orden al final de cada pasada.',
     complexity: 'O(n²)',
     stable: true,
   },
   {
     id: 'selection',
     label: 'Selección',
-    blurb: 'Busca el mínimo restante y lo lleva al frente.',
+    blurb: 'Busca el extremo restante y lo lleva al frente.',
     complexity: 'O(n²)',
     stable: false,
   },
@@ -72,6 +75,20 @@ export const SORT_ALGORITHMS: SortAlgorithmInfo[] = [
     label: 'Inserción',
     blurb: 'Toma cada número y lo inserta en la parte ya ordenada.',
     complexity: 'O(n²)',
+    stable: true,
+  },
+  {
+    id: 'shell',
+    label: 'Shell',
+    blurb: 'Ordena por saltos decrecientes y termina con inserción.',
+    complexity: 'O(n²)',
+    stable: false,
+  },
+  {
+    id: 'merge',
+    label: 'Merge',
+    blurb: 'Divide la lista, ordena mitades y las combina.',
+    complexity: 'O(n log n)',
     stable: true,
   },
 ];
@@ -108,13 +125,52 @@ export const toSortItems = (
   value,
 }));
 
+const directionPhrase = (direction: SortDirection): string =>
+  direction === 'asc' ? 'menor a mayor' : 'mayor a menor';
+
+const extremumLabel = (direction: SortDirection): string =>
+  direction === 'asc' ? 'mínimo' : 'máximo';
+
+const swapSymbol = (direction: SortDirection): string =>
+  direction === 'asc' ? '>' : '<';
+
+const candidateSymbol = (direction: SortDirection): string =>
+  direction === 'asc' ? '<' : '>';
+
+const shouldSwap = (
+  left: number,
+  right: number,
+  direction: SortDirection
+): boolean => (direction === 'asc' ? left > right : left < right);
+
+const isBetterCandidate = (
+  candidate: number,
+  current: number,
+  direction: SortDirection
+): boolean => (direction === 'asc' ? candidate < current : candidate > current);
+
+const shouldShift = (
+  neighbour: number,
+  key: number,
+  direction: SortDirection
+): boolean => (direction === 'asc' ? neighbour > key : neighbour < key);
+
+const mergeInOrder = (
+  left: number,
+  right: number,
+  direction: SortDirection
+): boolean => (direction === 'asc' ? left <= right : left >= right);
+
 /**
  * Devuelve la lista de pasos del algoritmo elegido. El primer paso es el
  * estado inicial y el último siempre tiene todos los ids en `sorted`.
+ * Por defecto ordena de menor a mayor; `direction` invierte todas las
+ * comparaciones sin duplicar el motor.
  */
 export const buildSortSteps = (
   source: SortItem[],
-  algorithm: SortAlgorithm
+  algorithm: SortAlgorithm,
+  direction: SortDirection = 'asc'
 ): SortStep[] => {
   // Copia local: el motor reordena sin tocar el arreglo del store.
   const items: SortItem[] = source.map((item) => ({ ...item }));
@@ -141,7 +197,7 @@ export const buildSortSteps = (
     });
   };
 
-  push({ note: 'Presioná Reproducir para ordenar.' });
+  push({ note: `Presioná Reproducir para ordenar de ${directionPhrase(direction)}.` });
 
   if (items.length > 1 && algorithm === 'bubble') {
     for (let end = items.length - 1; end > 0; end -= 1) {
@@ -154,10 +210,10 @@ export const buildSortSteps = (
         push({
           comparing: [left.id, right.id],
           sorted: suffix(end + 1),
-          note: `¿${left.value} > ${right.value}?`,
+          note: `¿${left.value} ${swapSymbol(direction)} ${right.value}?`,
         });
 
-        if (left.value > right.value) {
+        if (shouldSwap(left.value, right.value, direction)) {
           items[index] = right;
           items[index + 1] = left;
           swaps += 1;
@@ -187,39 +243,39 @@ export const buildSortSteps = (
 
   if (items.length > 1 && algorithm === 'selection') {
     for (let start = 0; start < items.length - 1; start += 1) {
-      let smallest = start;
+      let best = start;
       push({
-        candidate: items[smallest].id,
+        candidate: items[best].id,
         sorted: prefix(start),
-        note: `Buscamos el menor desde la posición ${start + 1}.`,
+        note: `Buscamos el ${extremumLabel(direction)} desde la posición ${start + 1}.`,
       });
 
       for (let index = start + 1; index < items.length; index += 1) {
         comparisons += 1;
         push({
-          comparing: [items[index].id, items[smallest].id],
-          candidate: items[smallest].id,
+          comparing: [items[index].id, items[best].id],
+          candidate: items[best].id,
           sorted: prefix(start),
-          note: `¿${items[index].value} < ${items[smallest].value}?`,
+          note: `¿${items[index].value} ${candidateSymbol(direction)} ${items[best].value}?`,
         });
 
-        if (items[index].value < items[smallest].value) {
-          smallest = index;
+        if (isBetterCandidate(items[index].value, items[best].value, direction)) {
+          best = index;
           push({
-            candidate: items[smallest].id,
+            candidate: items[best].id,
             sorted: prefix(start),
-            note: `Nuevo mínimo: ${items[smallest].value}.`,
+            note: `Nuevo ${extremumLabel(direction)}: ${items[best].value}.`,
           });
         }
       }
 
-      if (smallest !== start) {
+      if (best !== start) {
         const displaced = items[start];
-        items[start] = items[smallest];
-        items[smallest] = displaced;
+        items[start] = items[best];
+        items[best] = displaced;
         swaps += 1;
         push({
-          moving: [items[start].id, items[smallest].id],
+          moving: [items[start].id, items[best].id],
           sorted: prefix(start),
           note: `Llevamos ${items[start].value} al frente.`,
         });
@@ -250,10 +306,10 @@ export const buildSortSteps = (
           lifted: key.id,
           comparing: [neighbour.id, key.id],
           sorted: prefix(index),
-          note: `¿${neighbour.value} > ${key.value}?`,
+          note: `¿${neighbour.value} ${swapSymbol(direction)} ${key.value}?`,
         });
 
-        if (neighbour.value <= key.value) break;
+        if (!shouldShift(neighbour.value, key.value, direction)) break;
 
         items[cursor - 1] = items[cursor];
         items[cursor] = neighbour;
@@ -274,9 +330,110 @@ export const buildSortSteps = (
     }
   }
 
+  if (items.length > 1 && algorithm === 'shell') {
+    for (let gap = Math.floor(items.length / 2); gap > 0; gap = Math.floor(gap / 2)) {
+      push({
+        note: gap === 1
+          ? 'Última pasada: inserción con salto 1.'
+          : `Shell: comparamos elementos separados por ${gap} posiciones.`,
+      });
+
+      for (let index = gap; index < items.length; index += 1) {
+        const key = items[index];
+        let cursor = index;
+
+        push({
+          lifted: key.id,
+          sorted: gap === 1 ? prefix(index) : [],
+          note: `Tomamos ${key.value} para ordenarlo con salto ${gap}.`,
+        });
+
+        while (cursor >= gap) {
+          comparisons += 1;
+          const neighbour = items[cursor - gap];
+          push({
+            lifted: key.id,
+            comparing: [neighbour.id, key.id],
+            sorted: gap === 1 ? prefix(index) : [],
+            note: `¿${neighbour.value} ${swapSymbol(direction)} ${key.value}?`,
+          });
+
+          if (!shouldShift(neighbour.value, key.value, direction)) break;
+
+          items[cursor - gap] = key;
+          items[cursor] = neighbour;
+          swaps += 1;
+          push({
+            lifted: key.id,
+            moving: [key.id, neighbour.id],
+            sorted: gap === 1 ? prefix(index) : [],
+            note: `${key.value} salta ${gap} posiciones a la izquierda.`,
+          });
+          cursor -= gap;
+        }
+
+        push({
+          sorted: gap === 1 ? prefix(index + 1) : [],
+          note: `${key.value} queda en su lugar con salto ${gap}.`,
+        });
+      }
+    }
+  }
+
+  if (items.length > 1 && algorithm === 'merge') {
+    for (let width = 1; width < items.length; width *= 2) {
+      for (let start = 0; start < items.length; start += width * 2) {
+        const mid = Math.min(start + width, items.length);
+        const end = Math.min(start + width * 2, items.length);
+        if (mid >= end) continue;
+
+        push({
+          note: `Combinamos los bloques ${start + 1}-${mid} y ${mid + 1}-${end}.`,
+        });
+
+        let left = start;
+        let right = mid;
+
+        while (left < right && right < end) {
+          comparisons += 1;
+          const leftItem = items[left];
+          const rightItem = items[right];
+
+          push({
+            comparing: [leftItem.id, rightItem.id],
+            note: `¿${leftItem.value} ${direction === 'asc' ? '≤' : '≥'} ${rightItem.value}?`,
+          });
+
+          if (mergeInOrder(leftItem.value, rightItem.value, direction)) {
+            left += 1;
+            continue;
+          }
+
+          const displaced = items.slice(left, right);
+          const moved = items[right];
+          for (let cursor = right; cursor > left; cursor -= 1) {
+            items[cursor] = items[cursor - 1];
+          }
+          items[left] = moved;
+          swaps += 1;
+          push({
+            moving: [moved.id, ...displaced.map((item) => item.id)],
+            note: `${moved.value} se adelanta y el bloque corre una posición.`,
+          });
+          left += 1;
+          right += 1;
+        }
+
+        push({
+          note: `Bloque ${start + 1}-${end} combinado.`,
+        });
+      }
+    }
+  }
+
   const allSorted = orderOf();
   const lastStep = steps[steps.length - 1];
-  const closingNote = `Listo: ${items.length} números en orden.`;
+  const closingNote = `Listo: ${items.length} números en orden ${direction === 'asc' ? 'ascendente' : 'descendente'}.`;
 
   if (lastStep && lastStep.sorted.length === allSorted.length) {
     lastStep.note = closingNote;

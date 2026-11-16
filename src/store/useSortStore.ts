@@ -7,6 +7,7 @@ import {
   SORT_SAMPLE_VALUES,
   toSortItems,
   type SortAlgorithm,
+  type SortDirection,
   type SortItem,
   type SortStep,
 } from '../utils/sortEngine';
@@ -58,6 +59,7 @@ const initialItems = toSortItems(SORT_SAMPLE_VALUES, 'sample');
 
 interface SortState {
   algorithm: SortAlgorithm;
+  direction: SortDirection;
   speed: number;
   items: SortItem[];
   steps: SortStep[];
@@ -65,6 +67,7 @@ interface SortState {
   playing: boolean;
 
   setAlgorithm: (algorithm: SortAlgorithm) => void;
+  setDirection: (direction: SortDirection) => void;
   setSpeed: (speed: number) => void;
   setValues: (values: number[]) => void;
   generateRandom: (count: number) => void;
@@ -78,15 +81,23 @@ interface SortState {
 
 export const useSortStore = create<SortState>((set) => ({
   algorithm: 'bubble',
+  direction: 'asc',
   speed: 2,
   items: initialItems,
-  steps: buildSortSteps(initialItems, 'bubble'),
+  steps: buildSortSteps(initialItems, 'bubble', 'asc'),
   cursor: 0,
   playing: false,
 
   setAlgorithm: (algorithm) => set((state) => ({
     algorithm,
-    steps: buildSortSteps(state.items, algorithm),
+    steps: buildSortSteps(state.items, algorithm, state.direction),
+    cursor: 0,
+    playing: false,
+  })),
+
+  setDirection: (direction) => set((state) => ({
+    direction,
+    steps: buildSortSteps(state.items, state.algorithm, direction),
     cursor: 0,
     playing: false,
   })),
@@ -97,7 +108,7 @@ export const useSortStore = create<SortState>((set) => ({
     const items = nextItems(values);
     return {
       items,
-      steps: buildSortSteps(items, state.algorithm),
+      steps: buildSortSteps(items, state.algorithm, state.direction),
       cursor: 0,
       playing: false,
     };
@@ -111,7 +122,7 @@ export const useSortStore = create<SortState>((set) => ({
     const items = nextItems(randomValues(safeCount));
     return {
       items,
-      steps: buildSortSteps(items, state.algorithm),
+      steps: buildSortSteps(items, state.algorithm, state.direction),
       cursor: 0,
       playing: false,
     };

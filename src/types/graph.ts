@@ -281,6 +281,12 @@ export interface TreeBuildResult {
   traversals: Record<TreeOrder, number[]>;
 }
 
+export interface TreeReconstructResult {
+  tree: TreeData;
+  traversals: Record<TreeOrder, number[]>;
+  is_bst: boolean;
+}
+
 export interface TreeTraverseResult {
   order: TreeOrder;
   visits: { id: string; value: number }[];

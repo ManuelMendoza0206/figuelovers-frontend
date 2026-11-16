@@ -1,4 +1,5 @@
 import {
+  ArrowUpDown,
   ChartNoAxesColumn,
   Check,
   Dices,
@@ -8,14 +9,17 @@ import {
   RotateCcw,
   SkipBack,
   SkipForward,
+  Trash2,
+  Workflow,
 } from 'lucide-react';
 import React, { useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { BackButton } from '../components/BackButton';
 import { Sidebar } from '../components/Sidebar';
 import { SortWorkbench } from '../components/SortWorkbench';
 import { useSortStore } from '../store/useSortStore';
+import { useTreeResult } from '../store/useTreeResult';
 import { Button, IconButton } from '../ui';
 import { SORT_ALGORITHMS } from '../utils/sortEngine';
 
@@ -39,15 +43,18 @@ const BASE_STEP_MS = 300;
 
 const SortPage: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const returnTo = new URLSearchParams(location.search).get('from') ?? '/editor';
 
   const {
     algorithm,
+    direction,
     speed,
     items,
     steps,
     cursor,
     playing,
+    setDirection,
     setSpeed,
     setCursor,
     stepBy,
@@ -55,6 +62,7 @@ const SortPage: React.FC = () => {
     togglePlay,
     resetRun,
     generateRandom,
+    clear,
   } = useSortStore();
 
   const step = steps[cursor] ?? null;
@@ -74,6 +82,33 @@ const SortPage: React.FC = () => {
     () => Math.max(1, ...items.map((item) => item.value)),
     [items]
   );
+
+  // El puente a Árboles manda lo que se ve en la escena, no una copia
+  // aparte: si el usuario está a mitad de la animación, viaja ese orden.
+  const visibleValues = useMemo(() => {
+    const order = step?.order ?? items.map((item) => item.id);
+    return order
+      .map((id) => valuesById.get(id))
+      .filter((value): value is number => value !== undefined);
+  }, [items, step, valuesById]);
+
+  const treeValues = useMemo(
+    () => [...new Set(visibleValues)],
+    [visibleValues]
+  );
+
+  const sendToTrees = (): void => {
+    if (treeValues.length === 0) return;
+
+    // El constructor de Árboles puede haber quedado en modo aleatorio;
+    // el lote transferido siempre se revisa en el campo de valores.
+    useTreeResult.getState().setMode('values');
+
+    const sortPath = `${location.pathname}${location.search}`;
+    navigate(`/trees?from=${encodeURIComponent(sortPath)}`, {
+      state: { treeValues },
+    });
+  };
 
   const stepDelay = Math.round(Math.min(700, Math.max(45, BASE_STEP_MS / speed)));
 
@@ -158,12 +193,51 @@ const SortPage: React.FC = () => {
               <RotateCcw className="h-4 w-4" />
             </IconButton>
 
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setDirection(direction === 'asc' ? 'desc' : 'asc')}
+              leftIcon={<ArrowUpDown className="h-4 w-4" />}
+              title="Cambiar el sentido del ordenamiento"
+            >
+              {direction === 'asc' ? 'Menor → mayor' : 'Mayor → menor'}
+            </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={clear}
+              disabled={!hasItems}
+              leftIcon={<Trash2 className="h-4 w-4" />}
+              title="Quitar todos los números de la escena"
+            >
+              Limpiar
+            </Button>
+
             <div className="flex-1" />
 
             <span className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle lg:inline-flex">
               <ChartNoAxesColumn className="h-3.5 w-3.5 text-sky-300" aria-hidden="true" />
               {info.label} · {info.complexity}
             </span>
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={sendToTrees}
+              disabled={treeValues.length === 0}
+              leftIcon={<Workflow className="h-4 w-4" />}
+              title={
+                treeValues.length < visibleValues.length
+                  ? `Se enviarán ${treeValues.length} valores únicos; Árboles no acepta repetidos.`
+                  : 'Envía el orden visible actual al constructor de árboles.'
+              }
+            >
+              Pasar a Árboles
+            </Button>
 
             <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5">
               <Gauge className="h-3.5 w-3.5 text-ink-subtle" aria-hidden="true" />
@@ -332,7 +406,7 @@ const SortPage: React.FC = () => {
         workbench={{
           icon: ChartNoAxesColumn,
           title: 'Sort',
-          subtitle: 'Burbuja, selección e inserción',
+          subtitle: 'Burbuja, selección, inserción, shell y merge',
           iconClassName: 'bg-sky-300/10 text-sky-200',
         }}
       >

@@ -1,4 +1,4 @@
-import { Dices, Plus, RotateCcw, SendHorizontal, Workflow } from 'lucide-react';
+import { Dices, Pencil, Plus, RotateCcw, SendHorizontal, Workflow } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -74,9 +74,21 @@ export const TreeBuildPanel: React.FC = () => {
     beginRequest,
     finishRequest,
   } = useTreeResult();
-  const [valuesInput, setValuesInput] = useState('');
+
+  // Puente desde Sort: llega el orden visible de la animación. Se
+  // precarga el lote; el usuario sigue decidiendo cuándo insertarlo.
+  const transferredValues = (
+    location.state as { treeValues?: number[] } | null
+  )?.treeValues;
+  const [valuesInput, setValuesInput] = useState(() =>
+    transferredValues && transferredValues.length > 0
+      ? transferredValues.join(', ')
+      : ''
+  );
   const [countInput, setCountInput] = useState('7');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [editingValues, setEditingValues] = useState(false);
+  const [valuesDraft, setValuesDraft] = useState('');
 
   const layout = useMemo(
     () => (treeView ? layoutTree(treeView.tree) : null),
@@ -85,6 +97,61 @@ export const TreeBuildPanel: React.FC = () => {
 
   const showRequestError = (error: unknown, fallback: string): void => {
     if (!isCanceled(error)) setErrorMessage(extractApiErrorMessage(error, fallback));
+  };
+
+  const startEditingValues = (): void => {
+    if (loading || values.length === 0) return;
+    setValuesDraft(values.join(', '));
+    setEditingValues(true);
+    setErrorMessage(null);
+  };
+
+  const cancelEditingValues = (): void => {
+    if (loading) return;
+    setEditingValues(false);
+    setValuesDraft('');
+    setErrorMessage(null);
+  };
+
+  const applyValues = async (): Promise<void> => {
+    const parsed = parseValuesInput(valuesDraft, []);
+    if (!parsed.ok) {
+      setErrorMessage(parsed.reason);
+      return;
+    }
+    if (parsed.values.length > MAX_NODES) {
+      setErrorMessage(`El límite práctico es ${MAX_NODES} nodos.`);
+      return;
+    }
+    if (parsed.values.join(', ') === values.join(', ')) {
+      setEditingValues(false);
+      setValuesDraft('');
+      return;
+    }
+
+    const controller = beginRequest();
+    setErrorMessage(null);
+    try {
+      const response = await GraphServiceAPI.buildTree(
+        { mode: 'values', values: parsed.values },
+        controller.signal
+      );
+      setValues(parsed.values);
+      acceptBuiltTree({ tree: response.tree, traversals: response.traversals, isBst: true });
+      setEditingValues(false);
+      setValuesDraft('');
+    } catch (error: unknown) {
+      showRequestError(error, 'No se pudieron actualizar los números del árbol.');
+    } finally {
+      finishRequest(controller);
+    }
+  };
+
+  const resetAll = (): void => {
+    setEditingValues(false);
+    setValuesDraft('');
+    setErrorMessage(null);
+    resetTree();
   };
 
   const addValues = async (): Promise<void> => {
@@ -108,6 +175,8 @@ export const TreeBuildPanel: React.FC = () => {
       setValues(nextValues);
       setValuesInput('');
       acceptBuiltTree({ tree: response.tree, traversals: response.traversals, isBst: true });
+      setEditingValues(false);
+      setValuesDraft('');
     } catch (error: unknown) {
       showRequestError(error, 'No se pudieron insertar los valores.');
     } finally {
@@ -127,6 +196,8 @@ export const TreeBuildPanel: React.FC = () => {
       const response = await GraphServiceAPI.buildTree({ mode: 'random', count }, controller.signal);
       setValues(response.traversals.preorder);
       acceptBuiltTree({ tree: response.tree, traversals: response.traversals, isBst: true });
+      setEditingValues(false);
+      setValuesDraft('');
     } catch (error: unknown) {
       showRequestError(error, 'No se pudo generar el árbol aleatorio.');
     } finally {
@@ -157,6 +228,8 @@ export const TreeBuildPanel: React.FC = () => {
         isBst: traversals.inorder.every((value, index, all) => index === 0 || all[index - 1] < value),
       });
       setValues(traversals.preorder);
+      setEditingValues(false);
+      setValuesDraft('');
     } catch (error: unknown) {
       showRequestError(error, 'No se pudo cargar el árbol del editor.');
     } finally {
@@ -234,7 +307,7 @@ export const TreeBuildPanel: React.FC = () => {
               </Button>
               <Button
                 type="button"
-                onClick={resetTree}
+                onClick={resetAll}
                 variant="secondary"
                 leftIcon={<RotateCcw className="h-4 w-4" />}
               >
@@ -268,9 +341,76 @@ export const TreeBuildPanel: React.FC = () => {
         )}
 
         {values.length > 0 && (
-          <p className="mt-3 rounded-xl border border-border/60 bg-surface-muted px-3 py-2 text-xs leading-5 text-ink-muted">
-            Insertados: <span className="font-mono text-ink">{values.join(', ')}</span>
-          </p>
+          <div className="mt-3 rounded-xl border border-border/60 bg-surface-muted px-3 py-2">
+            {editingValues ? (
+              <div className="space-y-2">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-bold text-ink-muted">Números insertados</span>
+                  <input
+                    type="text"
+                    aria-label="Números insertados"
+                    value={valuesDraft}
+                    autoFocus
+                    autoComplete="off"
+                    spellCheck={false}
+                    disabled={loading}
+                    onChange={(event) => {
+                      setValuesDraft(event.target.value);
+                      setErrorMessage(null);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        void applyValues();
+                      }
+                      if (event.key === 'Escape') {
+                        event.preventDefault();
+                        cancelEditingValues();
+                      }
+                    }}
+                    className={FIELD_CLASS}
+                  />
+                </label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    aria-label="Aplicar números"
+                    onClick={() => void applyValues()}
+                    disabled={loading || valuesDraft.trim() === values.join(', ')}
+                  >
+                    Aplicar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={cancelEditingValues}
+                    disabled={loading}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs leading-5 text-ink-muted">
+                  Insertados: <span className="font-mono text-ink">{values.join(', ')}</span>
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  aria-label="Editar números"
+                  leftIcon={<Pencil className="h-3.5 w-3.5" />}
+                  onClick={startEditingValues}
+                  disabled={loading}
+                >
+                  Editar
+                </Button>
+              </div>
+            )}
+          </div>
         )}
       </section>
 

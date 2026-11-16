@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AlertTriangle, Network } from 'lucide-react';
+import { AlgorithmFileActions } from '../components/AlgorithmFileActions';
 import { BackButton } from '../components/BackButton';
 import { GraphSketch } from '../components/GraphSketch';
 import { Sidebar } from '../components/Sidebar';
@@ -8,7 +9,9 @@ import { GraphServiceAPI, isCanceled } from '../services/api';
 import { useGraphStore } from '../store/useGraphStore';
 import type { KruskalObjective, KruskalResultData } from '../types/graph';
 import { Button } from '../ui/Button';
+import { readGraphAlgorithmFileData } from '../utils/algorithmFiles';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { buildGraphPayload, graphPayloadToFlow } from '../utils/graphFile';
 import { buildKruskalPayload, validateKruskalInput } from '../utils/kruskalInput';
 
 const FIELD =
@@ -54,7 +57,7 @@ const LegendItem: React.FC<{ swatch: string; children: React.ReactNode }> = ({
 const KruskalPage: React.FC = () => {
   const location = useLocation();
   const returnTo = new URLSearchParams(location.search).get('from') ?? '/editor';
-  const { nodes, edges } = useGraphStore();
+  const { nodes, edges, loadGraph } = useGraphStore();
   const [result, setResult] = useState<KruskalResultData | null>(null);
   const [resultSignature, setResultSignature] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
@@ -135,6 +138,27 @@ const KruskalPage: React.FC = () => {
     }
   };
 
+  const loadKruskalFile = (raw: unknown): string | null => {
+    try {
+      const data = readGraphAlgorithmFileData(raw);
+      const converted = graphPayloadToFlow(data.graph);
+
+      request.current?.abort();
+      request.current = null;
+      setLoading(false);
+
+      loadGraph(converted.nodes, converted.edges);
+      setObjective(data.objective ?? 'min');
+      setResult(null);
+      setResultSignature(null);
+      setStepIndex(0);
+      setErrorMessage(null);
+      return null;
+    } catch (error: unknown) {
+      return error instanceof Error ? error.message : 'No se pudo cargar el grafo.';
+    }
+  };
+
   /** Decisión de cada arista procesada hasta el paso mostrado. */
   const decisions = useMemo(() => {
     const map = new Map<string, 'accepted' | 'rejected'>();
@@ -161,9 +185,19 @@ const KruskalPage: React.FC = () => {
         <p className="mt-2 max-w-lg text-sm text-ink-muted">
           Carga o crea una constelación en el editor y vuelve a Kruskal.
         </p>
-        <div className="mt-5 flex gap-3">
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
           <Link className="rounded-xl bg-brand px-4 py-2 text-sm font-bold text-[#07101f] transition hover:bg-brand-hover" to="/editor">Abrir editor</Link>
           <Link className="rounded-xl border border-white/15 px-4 py-2 text-sm text-ink transition hover:border-brand/40 hover:text-brand" to="/dashboard">Ver proyectos</Link>
+        </div>
+        <div className="mt-5">
+          <AlgorithmFileActions
+            algorithm="graph"
+            label="Kruskal"
+            data={{ graph: buildGraphPayload(nodes, edges), objective }}
+            onLoad={loadKruskalFile}
+            canSave={false}
+            disabled={loading}
+          />
         </div>
       </div>
     );
@@ -172,9 +206,19 @@ const KruskalPage: React.FC = () => {
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden text-ink">
       <main className="flex min-w-0 flex-1 flex-col gap-6 overflow-auto p-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <BackButton to={returnTo} />
-          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">spanning tree / 07</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-subtle">spanning tree / 07</span>
+            <AlgorithmFileActions
+              algorithm="graph"
+              label="Kruskal"
+              data={{ graph: buildGraphPayload(nodes, edges), objective }}
+              onLoad={loadKruskalFile}
+              canSave={nodes.length > 0}
+              disabled={loading}
+            />
+          </div>
         </div>
 
         <header className="glass-panel rounded-2xl p-5">

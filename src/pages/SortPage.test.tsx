@@ -1,9 +1,10 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useSortStore } from '../store/useSortStore';
+import { createAlgorithmFile } from '../utils/algorithmFiles';
 import { buildSortSteps, toSortItems } from '../utils/sortEngine';
 
 /**
@@ -27,12 +28,20 @@ const seed = (values: number[]): void => {
   const items = toSortItems(values, 'test');
   useSortStore.setState({
     algorithm: 'bubble',
+    direction: 'asc',
     speed: 2,
     items,
-    steps: buildSortSteps(items, 'bubble'),
+    steps: buildSortSteps(items, 'bubble', 'asc'),
     cursor: 0,
     playing: false,
   });
+};
+
+const finalValues = (): number[] => {
+  const { items, steps } = useSortStore.getState();
+  const values = new Map(items.map((item) => [item.id, item.value]));
+  const last = steps[steps.length - 1];
+  return last.order.map((id) => values.get(id) ?? 0);
 };
 
 beforeEach(() => {
@@ -109,6 +118,93 @@ describe('SortPage', () => {
     expect(useSortStore.getState().algorithm).toBe('selection');
     expect(screen.getByText(/Paso 001/)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Selección/ }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('cambia entre menor → mayor y mayor → menor', () => {
+    mount();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Menor → mayor' }));
+    expect(useSortStore.getState().direction).toBe('desc');
+    expect(finalValues()).toEqual([5, 4, 3, 2, 1]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mayor → menor' }));
+    expect(useSortStore.getState().direction).toBe('asc');
+    expect(finalValues()).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('limpia la lista desde el botón Limpiar', () => {
+    mount();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Limpiar' }));
+
+    expect(useSortStore.getState().items).toEqual([]);
+    expect(useSortStore.getState().steps).toEqual([]);
+    expect(screen.getByText('Todavía no hay números')).toBeTruthy();
+  });
+
+  it('carga una lista guardada con dirección descendente', async () => {
+    mount();
+    const file = new File(
+      [
+        JSON.stringify(
+          createAlgorithmFile('sort', {
+            values: [9, 3, 7],
+            algorithm: 'selection',
+            direction: 'desc',
+          })
+        ),
+      ],
+      'sort.json',
+      { type: 'application/json' }
+    );
+
+    fireEvent.change(screen.getByLabelText('Archivo JSON de Sort'), {
+      target: { files: [file] },
+    });
+
+    await waitFor(() => {
+      expect(useSortStore.getState().direction).toBe('desc');
+      expect(useSortStore.getState().algorithm).toBe('selection');
+    });
+    expect(useSortStore.getState().items.map((item) => item.value)).toEqual([9, 3, 7]);
+    expect(finalValues()).toEqual([9, 7, 3]);
+  });
+
+  it('permite elegir Shell y Merge', () => {
+    mount();
+
+    fireEvent.click(screen.getByRole('button', { name: /Shell/ }));
+    expect(useSortStore.getState().algorithm).toBe('shell');
+    expect(screen.getByText(/Paso 001/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /Merge/ }));
+    expect(useSortStore.getState().algorithm).toBe('merge');
+    expect(screen.getByText(/Paso 001/)).toBeTruthy();
+  });
+
+  it('pasa el orden visible a Árboles', () => {
+    const locationRef: { current: ReturnType<typeof useLocation> | null } = { current: null };
+    const Probe = () => {
+      locationRef.current = useLocation();
+      return null;
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/sort?from=%2Feditor']}>
+        <SortPage />
+        <Probe />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Pasar a Árboles/ }));
+
+    expect(locationRef.current?.pathname).toBe('/trees');
+    expect(new URLSearchParams(locationRef.current?.search ?? '').get('from')).toBe(
+      '/sort?from=%2Feditor'
+    );
+    expect(
+      (locationRef.current?.state as { treeValues?: number[] } | null)?.treeValues
+    ).toEqual([5, 1, 4, 2, 3]);
   });
 
   it('ajusta la velocidad y arrastra el progreso', () => {
