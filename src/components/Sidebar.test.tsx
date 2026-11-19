@@ -75,4 +75,16 @@ describe('Sidebar', () => {
 
     expect(screen.getByText(`${path}?from=%2Feditor`)).toBeTruthy();
   });
+
+  it('abre MATLAB Online en una pestaña nueva desde las herramientas', () => {
+    mount(<Sidebar />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar herramientas de algoritmos' }));
+
+    const link = screen.getByRole('link', { name: 'MATLAB ONLINE' });
+
+    expect(link.getAttribute('href')).toBe('https://matlab.mathworks.com');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
+  });
 });

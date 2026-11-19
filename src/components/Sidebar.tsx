@@ -1,4 +1,4 @@
-import { ChartNoAxesColumn, ChevronDown, Crosshair, GitBranch, Navigation2, Network, Route, Settings, Truck } from 'lucide-react';
+import { ChartNoAxesColumn, ChevronDown, Crosshair, ExternalLink, GitBranch, Navigation2, Network, Route, Settings, Truck, Waves } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -213,6 +213,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ workbench, children }) => {
                 <ChartNoAxesColumn className="h-4 w-4" />
                 <span>SORT</span>
               </button>
+              <a
+                href="https://matlab.mathworks.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsToolsOpen(false)}
+                title="Abrir MATLAB Online en una pestaña nueva"
+                className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-brand/25 bg-brand/10 px-2 py-2 text-[11px] font-bold text-brand transition hover:bg-brand/20"
+              >
+                <Waves className="h-4 w-4" />
+                <span>MATLAB ONLINE</span>
+                <ExternalLink className="h-3 w-3 opacity-70" aria-hidden="true" />
+              </a>
             </div>
           </div>
         </div>

@@ -25,6 +25,7 @@ import {
   Trash2,
   Truck,
   Upload,
+  Waves,
   Workflow,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -152,6 +153,11 @@ export const HELP_SECTIONS: Record<HelpSectionId, HelpSection> = {
         icon: <Upload className="h-4 w-4" aria-hidden="true" />,
         label: 'Cargar JSON',
         description: 'Importá un grafo validado desde un archivo.',
+      },
+      {
+        icon: <Waves className="h-4 w-4" aria-hidden="true" />,
+        label: 'MATLAB ONLINE',
+        description: 'Abre MATLAB Online en una pestaña nueva para trabajar con tus algoritmos en la nube.',
       },
     ],
     notes: [
