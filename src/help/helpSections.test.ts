@@ -57,4 +57,16 @@ describe('helpSections', () => {
     }
     expect(text).toContain('Pasar a Árboles');
   });
+
+  it('la guía de matlab aclara que el enlace no transfiere datos solo', () => {
+    const text = [
+      HELP_SECTIONS.matlab.summary,
+      ...HELP_SECTIONS.matlab.steps.map((step) => step.detail),
+      ...(HELP_SECTIONS.matlab.notes ?? []),
+    ].join(' ');
+
+    expect(text).toContain('matlab.mathworks.com');
+    expect(text).toContain('no transfiere datos automáticamente');
+    expect(text).toContain('Guardar JSON');
+  });
 });

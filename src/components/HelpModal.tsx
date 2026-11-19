@@ -1,11 +1,11 @@
-import { HelpCircle, Lightbulb, X } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import { ArrowLeft, ArrowRight, HelpCircle, Lightbulb, Waves, X } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { EDITOR_EVENTS } from '../lib/editorEvents';
 import { useEditorEvent } from '../hooks/useEditorEvent';
-import type { HelpControl, HelpSection, HelpStep } from '../help/helpSections';
-import { getHelpSection } from '../help/helpSections';
+import type { HelpControl, HelpSection, HelpSectionId, HelpStep } from '../help/helpSections';
+import { getHelpSection, HELP_SECTIONS } from '../help/helpSections';
 import { IconButton } from '../ui';
 
 interface HelpModalProps {
@@ -121,16 +121,35 @@ const HelpBody: React.FC<{ section: HelpSection }> = ({ section }) => (
  */
 export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onOpen, onClose }) => {
   const location = useLocation();
-  const section = getHelpSection(location.pathname);
+  const baseSection = getHelpSection(location.pathname);
+
+  /**
+   * Algunas guías se abren desde otra (por ejemplo, MATLAB desde el
+   * editor). El override guarda la ruta donde se pidió para que, si se
+   * navega a otra sección, la ayuda vuelva a seguir a la ruta actual.
+   */
+  const [guideOverride, setGuideOverride] = useState<{
+    path: string;
+    id: HelpSectionId;
+  } | null>(null);
+  const section = guideOverride?.path === location.pathname
+    ? HELP_SECTIONS[guideOverride.id]
+    : baseSection;
+
   const isConstellations = location.pathname.replace(/\/+$/, '') === '/constellations';
 
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const fabRef = useRef<HTMLButtonElement | null>(null);
   const wasOpen = useRef(false);
 
+  const handleClose = useCallback(() => {
+    setGuideOverride(null);
+    onClose();
+  }, [onClose]);
+
   useEditorEvent(EDITOR_EVENTS.openHelp, () => {
     if (isOpen) {
-      onClose();
+      handleClose();
     } else {
       onOpen();
     }
@@ -153,7 +172,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onOpen, onClose })
     document.body.style.overflow = 'hidden';
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') handleClose();
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -162,7 +181,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onOpen, onClose })
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   return (
     <>
@@ -200,7 +219,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onOpen, onClose })
             aria-label="Cerrar ayuda"
             aria-hidden="true"
             tabIndex={-1}
-            onClick={onClose}
+            onClick={handleClose}
             className="help-backdrop-enter absolute inset-0 bg-[#03060f]/75 backdrop-blur-sm"
           />
 
@@ -231,7 +250,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onOpen, onClose })
                 title="Cerrar ayuda (Esc)"
                 size="sm"
                 variant="secondary"
-                onClick={onClose}
+                onClick={handleClose}
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </IconButton>
@@ -239,6 +258,36 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onOpen, onClose })
 
             <div className="custom-scrollbar flex-1 overflow-y-auto px-5 py-5">
               <HelpBody section={section} />
+
+              <section className="mt-7" aria-labelledby="help-related-title">
+                <p id="help-related-title" className="eyebrow text-[9px]">
+                  Guías relacionadas
+                </p>
+                <div className="mt-3">
+                  {section.id === 'matlab' ? (
+                    <button
+                      type="button"
+                      onClick={() => setGuideOverride(null)}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-ink-muted transition hover:border-brand/30 hover:text-ink"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                      Volver a {baseSection.fabLabel}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setGuideOverride({ path: location.pathname, id: 'matlab' })
+                      }
+                      className="inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/10 px-3 py-1.5 text-[11px] font-bold text-brand transition hover:bg-brand/20"
+                    >
+                      <Waves className="h-3.5 w-3.5" aria-hidden="true" />
+                      Guía de MATLAB ONLINE
+                      <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+              </section>
             </div>
 
             <footer className="border-t border-border/80 px-5 py-3">

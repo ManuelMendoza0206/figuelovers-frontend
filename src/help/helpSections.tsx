@@ -37,7 +37,8 @@ export type HelpSectionId =
   | 'assignment'
   | 'northwest'
   | 'trees'
-  | 'sort';
+  | 'sort'
+  | 'matlab';
 
 export interface HelpStep {
   /** Acción corta; se muestra como título del paso. */
@@ -680,6 +681,65 @@ export const HELP_SECTIONS: Record<HelpSectionId, HelpSection> = {
       'Amarillo = comparación; violeta = movimiento; celeste = mínimo o clave; turquesa = zona ordenada. En burbuja y selección esa zona ya es definitiva; en inserción todavía puede correrse al insertar el siguiente número; en shell aparece en la última pasada y en merge recién al final.',
       'La lista, el algoritmo, la dirección, el progreso y la velocidad se conservan al cambiar de sección.',
       '«Pasar a Árboles» envía el orden visible actual y omite repetidos; en Árboles revisá el lote y presioná «Agregar».',
+    ],
+  },
+
+  matlab: {
+    id: 'matlab',
+    eyebrow: 'Herramienta externa',
+    title: 'MATLAB ONLINE · cálculo y gráficas',
+    summary:
+      'Abre MATLAB Online para resolver, comparar o graficar los datos de tu grafo con scripts de MATLAB, sin instalar nada.',
+    fabLabel: 'MATLAB',
+    icon: <Waves className="h-5 w-5" aria-hidden="true" />,
+    steps: [
+      {
+        title: 'Abrí MATLAB ONLINE',
+        detail:
+          'Desde el panel derecho de cualquier sección, tocá «MATLAB ONLINE». Se abre matlab.mathworks.com en una pestaña nueva y Figuelovers queda intacto en la pestaña actual.',
+      },
+      {
+        title: 'Iniciá sesión',
+        detail:
+          'Entrá con tu cuenta MathWorks. Si tu institución tiene licencia, usá esa cuenta; si no, consultá el plan gratuito de MathWorks.',
+      },
+      {
+        title: 'Llevá los datos del grafo',
+        detail:
+          'El botón no transfiere datos automáticamente. Usá «Guardar JSON» en la barra superior para descargar el grafo y después subí ese archivo a MATLAB Online.',
+      },
+      {
+        title: 'Trabajá en la nube',
+        detail:
+          'En MATLAB Online podés escribir scripts, cargar el JSON, armar la matriz de adyacencia y comparar tus resultados con los de Figuelovers.',
+      },
+      {
+        title: 'Volvé al proyecto',
+        detail:
+          'Cerrá la pestaña de MATLAB cuando termines. El grafo, los proyectos y los resultados de Figuelovers siguen guardados en esta pestaña.',
+      },
+    ],
+    controls: [
+      {
+        icon: <Waves className="h-4 w-4" aria-hidden="true" />,
+        label: 'MATLAB ONLINE',
+        description: 'Abre MATLAB Online en una pestaña nueva de tu navegador.',
+      },
+      {
+        icon: <Download className="h-4 w-4" aria-hidden="true" />,
+        label: 'Guardar JSON',
+        description: 'Descarga el grafo para llevarlo a MATLAB Online.',
+      },
+      {
+        icon: <Upload className="h-4 w-4" aria-hidden="true" />,
+        label: 'Cargar JSON',
+        description: 'Importa un grafo validado desde un archivo de MATLAB o de Figuelovers.',
+      },
+    ],
+    notes: [
+      'MATLAB Online es un servicio externo de MathWorks: necesita conexión a internet y una cuenta.',
+      'El botón abre el sitio general de MATLAB Online; no envía tu grafo ni inicia sesión por vos.',
+      'MATLAB Online se abre en otra pestaña para no perder el estado del editor ni los resultados de la sesión.',
     ],
   },
 };

@@ -76,6 +76,20 @@ describe('HelpModal contextual', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('abre la guía de MATLAB desde otra sección y permite volver', () => {
+    renderHelp('/editor');
+    openHelp();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guía de MATLAB ONLINE' }));
+
+    expect(screen.getByRole('dialog', { name: /MATLAB ONLINE/ })).toBeTruthy();
+    expect(screen.getByText('Iniciá sesión')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a Editor' }));
+
+    expect(screen.getByRole('dialog', { name: 'Construí y conectá tu grafo' })).toBeTruthy();
+  });
+
   it('se abre y se cierra con el atajo H del editor', () => {
     renderHelp('/editor');
 
